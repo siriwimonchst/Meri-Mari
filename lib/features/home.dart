@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/item_provider.dart';
 import '../../core/app_theme.dart';
+import 'product_detail.dart';
 
 class HomeScreen extends StatelessWidget {
   @override
@@ -10,14 +11,17 @@ class HomeScreen extends StatelessWidget {
     final itemProvider = Provider.of<ItemProvider>(context);
 
     return Scaffold(
-      appBar: AppBar(title: Text('Meri Mari')),
+      appBar: AppBar(title: const Text('Meri Mari')),
       body: Column(
         children: [
           // ส่วน Search
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: TextField(
-              decoration: InputDecoration(hintText: 'ค้นหา Art Toy...', prefixIcon: Icon(Icons.search)),
+              decoration: const InputDecoration(
+                hintText: 'ค้นหา Art Toy...', 
+                prefixIcon: Icon(Icons.search)
+              ),
               onChanged: (val) => itemProvider.setSearchQuery(val),
             ),
           ),
@@ -35,19 +39,36 @@ class HomeScreen extends StatelessWidget {
           // รายการสินค้า
           Expanded(
             child: GridView.builder(
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                childAspectRatio: 0.8, // ปรับสัดส่วนการ์ดไม่ให้เนื้อหาเบียดกันเกินไป
+              ),
               itemCount: itemProvider.filteredItems.length,
               itemBuilder: (context, index) {
                 final item = itemProvider.filteredItems[index];
-                return Card(
+                return GestureDetector(
+                onTap: () {
+                  // เมื่อกดที่การ์ด ให้เปิดหน้า ProductDetailScreen และส่งข้อมูล item ไปด้วย
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ProductDetailScreen(item: item),
+                    ),
+                  );
+                },
+                child:Card(
                   child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Image.network(item.imageUrl, height: 100),
-                      Text(item.title, style: TextStyle(fontWeight: FontWeight.bold)),
-                      Text('${item.totalPrice} THB', style: TextStyle(color: Colors.orange)),
+                      const SizedBox(height: 8),
+                      // แก้เป็น item.name ให้ตรงกับ ItemModel
+                      Text(item.name, style: const TextStyle(fontWeight: FontWeight.bold)), 
+                      // แก้เป็น item.price ให้ตรงกับ ItemModel
+                      Text('${item.price} THB', style: const TextStyle(color: Colors.orange)), 
                     ],
                   ),
-                );
+                ));
               },
             ),
           ),
