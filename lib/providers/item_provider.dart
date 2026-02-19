@@ -6,7 +6,7 @@ class ItemProvider with ChangeNotifier {
   List<ItemModel> _items = [
     // ข้อมูลจำลอง (Mock Data)
     ItemModel(id: '1', name: 'Hirono V1 - Fox', collection: 'The Other One', condition: 'Check Card', price: 350, shippingCost: 40, imageUrl: 'https://down-th.img.susercontent.com/file/th-11134207-7r98z-lnsx1l54m2wg7c'),
-    ItemModel(id: '2', name: 'Crybaby Bunny', collection: 'Powerpuff', condition: 'MISB', price: 590, shippingCost: 50, imageUrl: 'https://image.makewebeasy.net/makeweb/m_1920x0/c3teAI7nw/DefaultData/th_11134207_7r98o_lqlvjee0d89m76.jpg?v=202405291424'),
+    ItemModel(id: '2', name: 'Labubu Macaron', collection: 'Powerpuff', condition: 'MISB', price: 590, shippingCost: 50, imageUrl: 'https://image.makewebeasy.net/makeweb/m_1920x0/c3teAI7nw/DefaultData/th_11134207_7r98o_lqlvjee0d89m76.jpg?v=202405291424'),
   ];
 
   String _searchQuery = '';

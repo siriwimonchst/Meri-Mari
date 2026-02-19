@@ -6,8 +6,7 @@ class OrdersScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Mock data สำหรับแสดงผลหน้าจอไปก่อน
-    // ของจริงคุณสามารถดึงข้อมูลจาก EscrowProvider หรือ OrderProvider ได้ครับ
+    // Mock data 
     final List<Map<String, dynamic>> mockOrders = [
       {
         'id': 'ORD-001',
@@ -33,24 +32,47 @@ class OrdersScreen extends StatelessWidget {
     ];
 
     return Scaffold(
+      // 1. ปรับสีพื้นหลังให้เป็นพาสเทลสบายตา
+      backgroundColor: Colors.deepPurple.shade50,
+      
+      // 2. แต่ง AppBar ให้โปร่งใสและดูทันสมัย
       appBar: AppBar(
-        title: const Text('ติดตามสถานะ Escrow'),
+        title: Text(
+          'ติดตามสถานะ Escrow',
+          style: TextStyle(
+            color: Colors.deepPurple.shade800,
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+          ),
+        ),
         centerTitle: true,
-        backgroundColor: Colors.purple.shade50,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: IconThemeData(color: Colors.deepPurple.shade800), // สีปุ่มย้อนกลับ
       ),
-      backgroundColor: Colors.grey.shade100, // พื้นหลังสีเทาอ่อนให้การ์ดดูเด่นขึ้น
+      
       body: ListView.builder(
-        padding: const EdgeInsets.all(12.0),
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
         itemCount: mockOrders.length,
         itemBuilder: (context, index) {
           final order = mockOrders[index];
           
-          return Card(
-            elevation: 2,
-            margin: const EdgeInsets.only(bottom: 12),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          return Container(
+            margin: const EdgeInsets.only(bottom: 16),
+            // 3. ใช้ Container แทน Card เพื่อแต่งเงาให้ฟุ้งและซอฟต์ขึ้น
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.deepPurple.withOpacity(0.06),
+                  blurRadius: 15,
+                  offset: const Offset(0, 5),
+                ),
+              ],
+            ),
             child: Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.all(20.0), // เพิ่มพื้นที่ว่างให้ดูไม่อึดอัด
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -60,14 +82,13 @@ class OrdersScreen extends StatelessWidget {
                     children: [
                       Text(
                         'รหัส: ${order['id']}',
-                        style: const TextStyle(color: Colors.grey, fontSize: 12),
+                        style: TextStyle(color: Colors.grey.shade500, fontSize: 13, fontWeight: FontWeight.w600),
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                         decoration: BoxDecoration(
                           color: (order['statusColor'] as Color).withOpacity(0.1),
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: order['statusColor']),
                         ),
                         child: Text(
                           order['status'],
@@ -80,19 +101,24 @@ class OrdersScreen extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const Divider(height: 24),
+                  
+                  // เส้นคั่นบางๆ ไม่ให้กวนสายตา
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 16.0),
+                    child: Divider(color: Colors.grey.shade100, height: 1, thickness: 1.5),
+                  ),
                   
                   // แถวกลาง: รายละเอียดสินค้า
                   Row(
                     children: [
                       Container(
-                        height: 60,
-                        width: 60,
+                        height: 64,
+                        width: 64,
                         decoration: BoxDecoration(
-                          color: Colors.purple.shade50,
-                          borderRadius: BorderRadius.circular(8),
+                          color: Colors.deepPurple.shade50,
+                          borderRadius: BorderRadius.circular(16),
                         ),
-                        child: const Icon(Icons.inventory_2_outlined, color: Colors.purple),
+                        child: Icon(Icons.inventory_2_rounded, color: Colors.deepPurple.shade300, size: 32),
                       ),
                       const SizedBox(width: 16),
                       Expanded(
@@ -101,36 +127,40 @@ class OrdersScreen extends StatelessWidget {
                           children: [
                             Text(
                               order['itemName'],
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.grey.shade800),
                             ),
-                            const SizedBox(height: 4),
+                            const SizedBox(height: 6),
                             Text(
                               '${order['price']} THB',
-                              style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold),
+                              style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.w800, fontSize: 15),
                             ),
                           ],
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
                   
-                  // แถวล่าง: ปุ่มกดดูรายละเอียด
+                  // 4. แถวล่าง: ปุ่มกด (เปลี่ยนจาก Outline เป็นปุ่มทึบสีอ่อน)
                   SizedBox(
                     width: double.infinity,
-                    child: OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.purple,
-                        side: const BorderSide(color: Colors.purple),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    height: 48,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.deepPurple.shade50, // สีพื้นปุ่มม่วงอ่อน
+                        foregroundColor: Colors.deepPurple.shade700, // สีตัวหนังสือม่วงเข้ม
+                        elevation: 0, // ปิดเงาให้ดูแบนราบ (Flat Design)
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                       onPressed: () {
-                        // อนาคตสามารถกดเพื่อเข้าไปดูรายละเอียดการจัดส่ง หรือกดยืนยันรับของ (Release Funds)
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(content: Text('ดูรายละเอียดคำสั่งซื้อ ${order['id']}')),
                         );
                       },
-                      child: const Text('ดูรายละเอียด / จัดการคำสั่งซื้อ'),
+                      child: const Text(
+                        'ดูรายละเอียด / จัดการคำสั่งซื้อ',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                      ),
                     ),
                   ),
                 ],
