@@ -1,0 +1,58 @@
+//หน้าแรกและการค้นหา
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../providers/item_provider.dart';
+import '../../core/app_theme.dart';
+
+class HomeScreen extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final itemProvider = Provider.of<ItemProvider>(context);
+
+    return Scaffold(
+      appBar: AppBar(title: Text('Meri Mari')),
+      body: Column(
+        children: [
+          // ส่วน Search
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: TextField(
+              decoration: InputDecoration(hintText: 'ค้นหา Art Toy...', prefixIcon: Icon(Icons.search)),
+              onChanged: (val) => itemProvider.setSearchQuery(val),
+            ),
+          ),
+          // ส่วน Filter (Condition Tags)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: ['All', 'Check Card', 'MISB'].map((cond) {
+              return ActionChip(
+                label: Text(cond),
+                onPressed: () => itemProvider.setCondition(cond),
+                backgroundColor: MeriMariTheme.lightPurple,
+              );
+            }).toList(),
+          ),
+          // รายการสินค้า
+          Expanded(
+            child: GridView.builder(
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2),
+              itemCount: itemProvider.filteredItems.length,
+              itemBuilder: (context, index) {
+                final item = itemProvider.filteredItems[index];
+                return Card(
+                  child: Column(
+                    children: [
+                      Image.network(item.imageUrl, height: 100),
+                      Text(item.title, style: TextStyle(fontWeight: FontWeight.bold)),
+                      Text('${item.totalPrice} THB', style: TextStyle(color: Colors.orange)),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
