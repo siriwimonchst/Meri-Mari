@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "714845339163",
+    "project_id": "meri-mari",
+    "storage_bucket": "meri-mari.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:714845339163:android:f9e98320124cdae19f82be",
+        "android_client_info": {
+          "package_name": "com.example.meri_mari"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDLEPUhHDpjwZbZHvkL531tTdsD_PGxaSk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
