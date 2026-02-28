@@ -1,25 +1,59 @@
-//จัดการข้อมูลสินค้าและการ Filter
+// lib/providers/item_provider.dart
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/item_model.dart';
 
 class ItemProvider with ChangeNotifier {
-  List<ItemModel> _items = [
-    // ข้อมูลจำลอง (Mock Data)
-    ItemModel(id: '1', name: 'Hirono V1 - Fox', collection: 'The Other One', condition: 'Check Card', price: 350, shippingCost: 40, imageUrl: 'https://down-th.img.susercontent.com/file/th-11134207-7r98z-lnsx1l54m2wg7c'),
-    ItemModel(id: '2', name: 'Labubu Macaron', collection: 'Powerpuff', condition: 'MISB', price: 590, shippingCost: 50, imageUrl: 'https://image.makewebeasy.net/makeweb/m_1920x0/c3teAI7nw/DefaultData/th_11134207_7r98o_lqlvjee0d89m76.jpg?v=202405291424'),
-  ];
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
 
+  List<ItemModel> _items = [];
+  bool _isLoading = true;
+  String? _error;
   String _searchQuery = '';
   String _selectedCondition = 'All';
 
+  // ─── Getters ─────────────────────────────────────────────────────────────
+  bool get isLoading => _isLoading;
+  String? get error => _error;
+  String get selectedCondition => _selectedCondition;
+
   List<ItemModel> get filteredItems {
     return _items.where((item) {
-      bool matchSearch = item.name.toLowerCase().contains(_searchQuery.toLowerCase());
-      bool matchCondition = _selectedCondition == 'All' || item.condition == _selectedCondition;
+      final matchSearch = item.name.toLowerCase().contains(
+        _searchQuery.toLowerCase(),
+      );
+      final matchCondition =
+          _selectedCondition == 'All' || item.condition == _selectedCondition;
       return matchSearch && matchCondition;
     }).toList();
   }
 
+  // ─── Constructor: เริ่ม listen Firestore ─────────────────────────────────
+  ItemProvider() {
+    _listenToItems();
+  }
+
+  /// Subscribe realtime stream จาก Firestore collection 'items'
+  void _listenToItems() {
+    _db
+        .collection('items')
+        .snapshots()
+        .listen(
+          (snapshot) {
+            _items = snapshot.docs.map(ItemModel.fromFirestore).toList();
+            _isLoading = false;
+            _error = null;
+            notifyListeners();
+          },
+          onError: (e) {
+            _error = 'โหลดข้อมูลไม่สำเร็จ: $e';
+            _isLoading = false;
+            notifyListeners();
+          },
+        );
+  }
+
+  // ─── Filters ─────────────────────────────────────────────────────────────
   void setSearchQuery(String query) {
     _searchQuery = query;
     notifyListeners();
