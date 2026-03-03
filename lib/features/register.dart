@@ -1,7 +1,5 @@
-// lib/features/register.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:provider/provider.dart';
 import '../providers/favorites_provider.dart';
 import 'auth_widgets.dart';
@@ -20,8 +18,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _passCtrl = TextEditingController();
   bool _loading = false;
   bool _obscure = true;
-
-  static const _purple = Color(0xFFAB9DC4);
 
   @override
   void dispose() {
@@ -75,29 +71,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
-  Future<void> _registerWithGoogle() async {
-    setState(() => _loading = true);
-    try {
-      final googleUser = await GoogleSignIn().signIn();
-      if (googleUser == null) {
-        setState(() => _loading = false);
-        return;
-      }
-      final googleAuth = await googleUser.authentication;
-      final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
-      await FirebaseAuth.instance.signInWithCredential(credential);
-      if (!mounted) return;
-      await _afterSignUp();
-    } catch (e) {
-      _showError('Google Sign-In ล้มเหลว');
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
-  }
-
   Future<void> _afterSignUp() async {
     await context.read<FavoritesProvider>().loadFavorites();
     if (!mounted) return;
@@ -122,168 +95,234 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
         children: [
-          // ── Purple blob top-right ─────────────────────────────────────
-          Positioned(
-            top: -60,
-            right: -60,
-            child: Container(
-              width: 260,
-              height: 260,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [Color(0xFFD4C8E8), Color(0xFFAB9DC4)],
-                ),
+          // ── Background Gradient ───────────────────────────────────────
+          Container(
+            height: screenHeight * 0.45,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFFC5B4E3), Color(0xFF8B73AF)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
             ),
-          ),
-          Positioned(
-            top: 20,
-            right: 20,
-            child: Container(
-              width: 160,
-              height: 160,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [Colors.white, Color(0xFFEAE4F2)],
+            // Pattern overlay simulating the circular lines from the design
+            child: Stack(
+              children: [
+                Positioned(
+                  top: -150,
+                  right: -150,
+                  child: Container(
+                    width: 500,
+                    height: 500,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.15),
+                        width: 1,
+                      ),
+                    ),
+                  ),
                 ),
-              ),
+                Positioned(
+                  top: -100,
+                  right: -100,
+                  child: Container(
+                    width: 400,
+                    height: 400,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.15),
+                        width: 1,
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: -50,
+                  right: -50,
+                  child: Container(
+                    width: 300,
+                    height: 300,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.15),
+                        width: 1,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
 
-          // ── Content ──────────────────────────────────────────────────
+          // ── Back Arrow (Top Left) ───────────────────────────────────
           SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 28),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 16),
-
-                  // Back button
-                  GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: const Icon(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: GestureDetector(
+                onTap: () {
+                  if (Navigator.canPop(context)) {
+                    Navigator.pop(context);
+                  }
+                },
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
                       Icons.arrow_back_ios_new_rounded,
-                      size: 22,
+                      size: 18,
                       color: Color(0xFF1A1A2E),
                     ),
-                  ),
-
-                  const SizedBox(height: 80),
-
-                  // Title
-                  const Text(
-                    'Create account',
-                    style: TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.w900,
-                      color: Color(0xFF1A1A2E),
+                    SizedBox(width: 8),
+                    Text(
+                      'Back',
+                      style: TextStyle(fontSize: 15, color: Color(0xFF1A1A2E)),
                     ),
-                  ),
-                  const SizedBox(height: 6),
-                  GestureDetector(
-                    onTap: () => Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (_) => const AuthScreen()),
-                    ),
-                    child: RichText(
-                      text: const TextSpan(
-                        text: 'Already have an account? ',
-                        style: TextStyle(color: Colors.grey, fontSize: 14),
-                        children: [
-                          TextSpan(
-                            text: 'sign in',
-                            style: TextStyle(
-                              color: _purple,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ],
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // ── White Card Content ────────────────────────────────────────
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: Container(
+              height: screenHeight * 0.75,
+              padding: const EdgeInsets.fromLTRB(28, 48, 28, 28),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(32),
+                  topRight: Radius.circular(32),
+                ),
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // Title
+                    const Text(
+                      'Create Your Account',
+                      style: TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF1A1A2E),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 36),
+                    const SizedBox(height: 12),
 
-                  // Name
-                  AuthInputField(
-                    controller: _nameCtrl,
-                    hint: 'Name',
-                    icon: Icons.person_outline_rounded,
-                  ),
-                  const SizedBox(height: 14),
-
-                  // Email
-                  AuthInputField(
-                    controller: _emailCtrl,
-                    hint: 'Gmail',
-                    icon: Icons.email_outlined,
-                    keyboardType: TextInputType.emailAddress,
-                  ),
-                  const SizedBox(height: 14),
-
-                  // Password
-                  AuthInputField(
-                    controller: _passCtrl,
-                    hint: 'Password',
-                    icon: Icons.lock_outline,
-                    obscure: _obscure,
-                    suffix: IconButton(
-                      icon: Icon(
-                        _obscure
-                            ? Icons.visibility_off_outlined
-                            : Icons.visibility_outlined,
-                        size: 20,
-                        color: const Color(0xFFAB9DC4),
+                    // Catchy Phrase
+                    const Text(
+                      'Join the Meri Mari community today\nand discover what you love!',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Color(0xFF757575),
+                        height: 1.4,
                       ),
-                      onPressed: () => setState(() => _obscure = !_obscure),
                     ),
-                    onSubmitted: (_) => _register(),
-                  ),
-                  const SizedBox(height: 36),
+                    const SizedBox(height: 48),
 
-                  // Sign Up button (right-aligned)
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: AuthPillButton(
-                      label: 'Sign up',
-                      icon: Icons.arrow_forward_rounded,
-                      loading: _loading,
-                      onPressed: _register,
+                    // Name
+                    AuthInputField(
+                      controller: _nameCtrl,
+                      hint: 'Enter full name',
+                      icon: Icons.person_outline_rounded,
                     ),
-                  ),
-                  const SizedBox(height: 40),
+                    const SizedBox(height: 16),
 
-                  // Divider
-                  Row(
-                    children: [
-                      const Expanded(child: Divider()),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        child: Text(
-                          'or',
+                    // Email
+                    AuthInputField(
+                      controller: _emailCtrl,
+                      hint: 'Enter email',
+                      icon: Icons.email_outlined,
+                      keyboardType: TextInputType.emailAddress,
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Password
+                    AuthInputField(
+                      controller: _passCtrl,
+                      hint: 'Enter password',
+                      icon: Icons.lock_outline,
+                      obscure: _obscure,
+                      suffix: IconButton(
+                        icon: Icon(
+                          _obscure
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined,
+                          size: 20,
+                          color: const Color(0xFFAB9DC4),
+                        ),
+                        onPressed: () => setState(() => _obscure = !_obscure),
+                      ),
+                      onSubmitted: (_) => _register(),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Forgot Password
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: GestureDetector(
+                        onTap: () {},
+                        child: const Text(
+                          'Forgot password?',
                           style: TextStyle(
-                            color: Colors.grey.shade400,
+                            color: Color(0xFF7B5EA7),
                             fontSize: 13,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
-                      const Expanded(child: Divider()),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
+                    ),
+                    const SizedBox(height: 48),
 
-                  // Google
-                  AuthGoogleButton(
-                    onPressed: _loading ? null : _registerWithGoogle,
-                  ),
-                  const SizedBox(height: 40),
-                ],
+                    // Sign Up Button (Gradient)
+                    AuthGradientButton(
+                      label: 'Get Started',
+                      loading: _loading,
+                      onPressed: _register,
+                    ),
+
+                    const SizedBox(height: 48),
+
+                    // Sign in link
+                    GestureDetector(
+                      onTap: () => Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(builder: (_) => const AuthScreen()),
+                      ),
+                      child: RichText(
+                        text: const TextSpan(
+                          text: 'Already have an account? ',
+                          style: TextStyle(
+                            color: Color(0xFF757575),
+                            fontSize: 14,
+                          ),
+                          children: [
+                            TextSpan(
+                              text: 'Log In',
+                              style: TextStyle(
+                                color: Color(0xFF7B5EA7),
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+                ),
               ),
             ),
           ),
