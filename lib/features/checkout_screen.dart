@@ -13,7 +13,9 @@ const _kPurpleBorder = Color(0xFFDDD6E8);
 const _kText = Color(0xFF1A1A2E);
 
 class CheckoutScreen extends StatelessWidget {
-  const CheckoutScreen({super.key});
+  final List<CartItem>? directItems;
+
+  const CheckoutScreen({super.key, this.directItems});
 
   @override
   Widget build(BuildContext context) {
@@ -21,11 +23,20 @@ class CheckoutScreen extends StatelessWidget {
     final s = context.watch<AppLocaleProvider>().strings;
     final addressProvider = context.watch<AddressProvider>();
 
-    final selectedItems = cart.items
-        .where((ci) => cart.isSelected(ci.item.id))
-        .toList();
-    final subtotal = cart.selectedSubtotal;
-    final shipping = cart.selectedShipping;
+    final isDirectBuy = directItems != null;
+    final selectedItems = isDirectBuy
+        ? directItems!
+        : cart.items.where((ci) => cart.isSelected(ci.item.id)).toList();
+
+    final subtotal = isDirectBuy
+        ? selectedItems.fold(
+            0.0,
+            (sum, ci) => sum + (ci.item.price * ci.quantity),
+          )
+        : cart.selectedSubtotal;
+
+    // Placeholder fixed shipping: 50. In the reference image, it shows ฿50 for shipping.
+    final shipping = isDirectBuy ? 50.0 : cart.selectedShipping;
     final total = subtotal + shipping;
 
     return Scaffold(
@@ -392,15 +403,21 @@ class CheckoutScreen extends StatelessWidget {
               child: SizedBox(
                 height: 52,
                 child: ElevatedButton(
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => QrPaymentScreen(
-                        total: total,
-                        selectedItems: selectedItems,
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => QrPaymentScreen(
+                          total: total,
+                          selectedItems: selectedItems,
+                        ),
                       ),
-                    ),
-                  ),
+                    );
+                    // Only clear cart if it was a cart checkout
+                    if (!isDirectBuy) {
+                      context.read<CartProvider>().clear();
+                    }
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _kPurple,
                     foregroundColor: Colors.white,

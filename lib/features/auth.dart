@@ -192,7 +192,7 @@ class _AuthScreenState extends State<AuthScreen> {
                   // Email field
                   AuthInputField(
                     controller: _emailCtrl,
-                    hint: 'Email',
+                    hint: 'Gmail',
                     icon: Icons.email_outlined,
                     keyboardType: TextInputType.emailAddress,
                   ),

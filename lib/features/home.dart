@@ -11,6 +11,7 @@ import '../models/item_model.dart';
 import 'product_detail.dart';
 import 'cart_screen.dart';
 import 'notifications_screen.dart';
+import 'search_results_screen.dart';
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const _kPurple = Color(0xFF7B5EA7);
@@ -380,8 +381,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: _SearchBar(
                   itemProvider: itemProvider,
                   hint: s.searchHint,
-                  hasActiveFilters: hasActiveFilters,
-                  onFilterTap: () => _showFilterSheet(context),
                 ),
               ),
             ),
@@ -566,18 +565,42 @@ class _LocationBar extends StatelessWidget {
 
 // ── Search Bar ────────────────────────────────────────────────────────────────
 
-class _SearchBar extends StatelessWidget {
+class _SearchBar extends StatefulWidget {
   final ItemProvider itemProvider;
   final String hint;
-  final bool hasActiveFilters;
-  final VoidCallback onFilterTap;
 
-  const _SearchBar({
-    required this.itemProvider,
-    required this.hint,
-    required this.hasActiveFilters,
-    required this.onFilterTap,
-  });
+  const _SearchBar({required this.itemProvider, required this.hint});
+
+  @override
+  State<_SearchBar> createState() => _SearchBarState();
+}
+
+class _SearchBarState extends State<_SearchBar> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _submitSearch() {
+    if (_controller.text.trim().isNotEmpty) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) =>
+              SearchResultsScreen(initialQuery: _controller.text.trim()),
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -592,41 +615,27 @@ class _SearchBar extends StatelessWidget {
               border: Border.all(color: _kPurpleBorder, width: 1),
             ),
             child: TextField(
+              controller: _controller,
               style: const TextStyle(fontSize: 14, color: _kText),
+              textInputAction: TextInputAction.search,
+              onSubmitted: (_) => _submitSearch(),
               decoration: InputDecoration(
-                hintText: hint,
+                hintText: widget.hint,
                 hintStyle: const TextStyle(color: _kSubText, fontSize: 14),
-                prefixIcon: const Icon(
-                  Icons.search_rounded,
-                  color: _kPurpleLight,
-                  size: 20,
+                contentPadding: const EdgeInsets.symmetric(
+                  vertical: 14,
+                  horizontal: 16,
+                ),
+                suffixIcon: IconButton(
+                  icon: const Icon(
+                    Icons.search_rounded,
+                    color: _kPurpleLight,
+                    size: 20,
+                  ),
+                  onPressed: _submitSearch,
                 ),
                 border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(vertical: 14),
               ),
-              onChanged: (val) => itemProvider.setSearchQuery(val),
-            ),
-          ),
-        ),
-        const SizedBox(width: 10),
-        GestureDetector(
-          onTap: onFilterTap,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: hasActiveFilters ? _kPurple : _kPurpleFaint,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: hasActiveFilters ? _kPurple : _kPurpleBorder,
-                width: 1,
-              ),
-            ),
-            child: Icon(
-              Icons.tune_rounded,
-              color: hasActiveFilters ? Colors.white : _kPurple,
-              size: 20,
             ),
           ),
         ),

@@ -444,51 +444,70 @@ class _ToPayCardState extends State<_ToPayCard> {
           const Divider(height: 1, color: Color(0xFFF0EAF8)),
 
           // ── Countdown timer row ───────────────────────────────────────
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-            child: Row(
-              children: [
-                Expanded(
-                  child: expired
-                      ? Text(
-                          s.isThai
-                              ? 'หมดเวลาชำระเงิน — ออเดอร์ถูกยกเลิก'
-                              : 'Payment expired — order cancelled',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.red.shade400,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        )
-                      : RichText(
-                          text: TextSpan(
-                            style: const TextStyle(fontSize: 13),
-                            children: [
-                              TextSpan(
-                                text: s.isThai ? 'ชำระภายใน ' : 'Pay within ',
-                                style: TextStyle(color: Colors.grey.shade600),
-                              ),
-                              TextSpan(
-                                text: _fmt(_remaining),
-                                style: const TextStyle(
-                                  color: _kPurple,
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 15,
-                                ),
-                              ),
-                              TextSpan(
-                                text: s.isThai
-                                    ? ' ผ่าน QR พร้อมเพย์'
-                                    : ' via QR PromptPay',
-                                style: TextStyle(color: Colors.grey.shade600),
-                              ),
-                            ],
-                          ),
+          InkWell(
+            onTap: expired
+                ? null
+                : () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => QrPaymentScreen(
+                          total: order.total,
+                          selectedItems: const [],
+                          orderId: order.id,
                         ),
-                ),
-                if (!expired)
-                  const Icon(Icons.chevron_right_rounded, color: _kPurpleLight),
-              ],
+                      ),
+                    );
+                  },
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: expired
+                        ? Text(
+                            s.isThai
+                                ? 'หมดเวลาชำระเงิน — ออเดอร์ถูกยกเลิก'
+                                : 'Payment expired — order cancelled',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.red.shade400,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          )
+                        : RichText(
+                            text: TextSpan(
+                              style: const TextStyle(fontSize: 13),
+                              children: [
+                                TextSpan(
+                                  text: s.isThai ? 'ชำระภายใน ' : 'Pay within ',
+                                  style: TextStyle(color: Colors.grey.shade600),
+                                ),
+                                TextSpan(
+                                  text: _fmt(_remaining),
+                                  style: const TextStyle(
+                                    color: _kPurple,
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                                TextSpan(
+                                  text: s.isThai
+                                      ? ' ผ่าน QR พร้อมเพย์'
+                                      : ' via QR PromptPay',
+                                  style: TextStyle(color: Colors.grey.shade600),
+                                ),
+                              ],
+                            ),
+                          ),
+                  ),
+                  if (!expired)
+                    const Icon(
+                      Icons.chevron_right_rounded,
+                      color: _kPurpleLight,
+                    ),
+                ],
+              ),
             ),
           ),
 
@@ -499,58 +518,83 @@ class _ToPayCardState extends State<_ToPayCard> {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
               child: Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => _confirmCancel(context, order.id, s),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Color(0xFFEF9A9A)),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                      child: Text(
-                        s.isThai ? 'ยกเลิกคำสั่งซื้อ' : 'Cancel Order',
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: Colors.red,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => QrPaymentScreen(
-                            total: order.total,
-                            selectedItems: const [],
+                children: order.hasSlip
+                    ? [
+                        Expanded(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            decoration: BoxDecoration(
+                              color: _kPurpleFaint,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            alignment: Alignment.center,
+                            child: Text(
+                              s.isThai
+                                  ? 'กำลังตรวจสอบการชำระเงิน'
+                                  : 'Verifying Payment',
+                              style: const TextStyle(
+                                color: _kPurple,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 13,
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _kPurple,
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
+                      ]
+                    : [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () =>
+                                _confirmCancel(context, order.id, s),
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(color: Color(0xFFEF9A9A)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                            child: Text(
+                              s.isThai ? 'ยกเลิกคำสั่งซื้อ' : 'Cancel Order',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: Colors.red,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
                         ),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                      child: Text(
-                        s.isThai ? 'ชำระเงิน' : 'Pay now',
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => QrPaymentScreen(
+                                  total: order.total,
+                                  selectedItems: const [],
+                                  orderId: order.id,
+                                ),
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: _kPurple,
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                            child: Text(
+                              s.isThai ? 'ชำระเงิน' : 'Pay now',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                  ),
-                ],
+                      ],
               ),
             ),
         ],

@@ -221,7 +221,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   // Email
                   AuthInputField(
                     controller: _emailCtrl,
-                    hint: 'Email or phone',
+                    hint: 'Gmail',
                     icon: Icons.email_outlined,
                     keyboardType: TextInputType.emailAddress,
                   ),

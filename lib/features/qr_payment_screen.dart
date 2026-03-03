@@ -1,7 +1,7 @@
 // lib/features/qr_payment_screen.dart
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_locale_provider.dart';
 import '../providers/cart_provider.dart';
@@ -17,11 +17,13 @@ const _kText = Color(0xFF1A1A2E);
 class QrPaymentScreen extends StatefulWidget {
   final double total;
   final List<dynamic> selectedItems;
+  final String? orderId;
 
   const QrPaymentScreen({
     super.key,
     required this.total,
     required this.selectedItems,
+    this.orderId,
   });
 
   @override
@@ -32,16 +34,11 @@ class _QrPaymentScreenState extends State<QrPaymentScreen> {
   File? _slipImage;
   bool _uploading = false;
   bool _uploaded = false;
-  final ImagePicker _picker = ImagePicker();
-
   Future<void> _pickSlip() async {
-    final picked = await _picker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 85,
-    );
-    if (picked != null) {
+    final result = await FilePicker.platform.pickFiles(type: FileType.image);
+    if (result != null && result.files.single.path != null) {
       setState(() {
-        _slipImage = File(picked.path);
+        _slipImage = File(result.files.single.path!);
         _uploading = true;
       });
       // Simulate upload delay
@@ -53,24 +50,28 @@ class _QrPaymentScreenState extends State<QrPaymentScreen> {
       // Navigate to orders after short delay
       await Future.delayed(const Duration(seconds: 2));
       if (!mounted) return;
-      // Place order in OrdersProvider (To Pay tab)
       final ordersProvider = context.read<OrdersProvider>();
-      ordersProvider.placeOrders(
-        items: widget.selectedItems
-            .map(
-              (ci) => {
-                'itemId': (ci.item.id as String),
-                'name': (ci.item.name as String),
-                'price': (ci.item.price as double),
-                'imageUrl': (ci.item.imageUrl as String),
-                'qty': (ci.quantity as int),
-              },
-            )
-            .toList(),
-        tab: OrderTab.toPay,
-      );
-      // Clear selected items from cart after order placed
-      context.read<CartProvider>().clear();
+      if (widget.orderId != null) {
+        ordersProvider.markSlipUploaded(widget.orderId!);
+      } else {
+        ordersProvider.placeOrders(
+          items: widget.selectedItems
+              .map(
+                (ci) => {
+                  'itemId': (ci.item.id as String),
+                  'name': (ci.item.name as String),
+                  'price': (ci.item.price as double),
+                  'imageUrl': (ci.item.imageUrl as String),
+                  'qty': (ci.quantity as int),
+                },
+              )
+              .toList(),
+          tab: OrderTab.toPay,
+          hasSlip: true,
+        );
+        // Clear selected items from cart after new order placed
+        context.read<CartProvider>().clear();
+      }
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => const OrdersScreen(initialTab: 0)),
@@ -522,22 +523,24 @@ class _QrPaymentScreenState extends State<QrPaymentScreen> {
             ),
             onPressed: () {
               Navigator.pop(ctx);
-              // Place order in OrdersProvider (To Pay tab)
-              context.read<OrdersProvider>().placeOrders(
-                items: widget.selectedItems
-                    .map(
-                      (ci) => {
-                        'itemId': (ci.item.id as String),
-                        'name': (ci.item.name as String),
-                        'price': (ci.item.price as double),
-                        'imageUrl': (ci.item.imageUrl as String),
-                        'qty': (ci.quantity as int),
-                      },
-                    )
-                    .toList(),
-                tab: OrderTab.toPay,
-              );
-              context.read<CartProvider>().clear();
+              if (widget.orderId == null) {
+                // Place order in OrdersProvider (To Pay tab)
+                context.read<OrdersProvider>().placeOrders(
+                  items: widget.selectedItems
+                      .map(
+                        (ci) => {
+                          'itemId': (ci.item.id as String),
+                          'name': (ci.item.name as String),
+                          'price': (ci.item.price as double),
+                          'imageUrl': (ci.item.imageUrl as String),
+                          'qty': (ci.quantity as int),
+                        },
+                      )
+                      .toList(),
+                  tab: OrderTab.toPay,
+                );
+                context.read<CartProvider>().clear();
+              }
               Navigator.pushAndRemoveUntil(
                 context,
                 MaterialPageRoute(

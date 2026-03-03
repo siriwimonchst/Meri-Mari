@@ -19,9 +19,10 @@ class ItemProvider with ChangeNotifier {
 
   List<ItemModel> get filteredItems {
     return _items.where((item) {
-      final matchSearch = item.name.toLowerCase().contains(
-        _searchQuery.toLowerCase(),
-      );
+      final query = _searchQuery.toLowerCase();
+      final matchSearch =
+          item.name.toLowerCase().contains(query) ||
+          item.collection.toLowerCase().contains(query);
       // If no tags selected, show all. Otherwise item must have at least one matching tag.
       final matchTags =
           _selectedTags.isEmpty ||
@@ -33,6 +34,32 @@ class ItemProvider with ChangeNotifier {
   // ─── Constructor: เริ่ม listen Firestore ─────────────────────────────────
   ItemProvider() {
     _listenToItems();
+    _seedDimoo();
+  }
+
+  /// Check if a Dimoo item exists. If not, seed a mock one to Firestore.
+  Future<void> _seedDimoo() async {
+    try {
+      final snap = await _db
+          .collection('items')
+          .where('name', isGreaterThanOrEqualTo: 'Dimoo')
+          .where('name', isLessThan: 'Dimop')
+          .get();
+      if (snap.docs.isEmpty) {
+        await _db.collection('items').add({
+          'name': 'Dimoo - Finding unicorns',
+          'collection': 'Dimoo',
+          'price': 450.0,
+          'imageUrls': [
+            'https://firebasestorage.googleapis.com/v0/b/meri-mari.appspot.com/o/dimoo_mock.jpg?alt=media',
+          ],
+          'tags': ['มือ 1', 'แบบสุ่ม'],
+          'shippingCost': 50.0,
+        });
+      }
+    } catch (e) {
+      debugPrint('Error seeding Dimoo: $e');
+    }
   }
 
   /// Subscribe realtime stream จาก Firestore collection 'items'

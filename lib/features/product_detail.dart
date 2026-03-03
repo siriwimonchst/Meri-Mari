@@ -5,7 +5,7 @@ import '../models/item_model.dart';
 import '../providers/cart_provider.dart';
 import '../providers/favorites_provider.dart';
 import '../providers/app_locale_provider.dart';
-import 'orders.dart';
+import 'checkout_screen.dart'; // Changed from orders.dart
 import '../providers/orders_provider.dart';
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
@@ -454,7 +454,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                       : () => Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => const OrdersScreen(),
+                            builder: (_) => CheckoutScreen(
+                              directItems: [
+                                CartItem(item: widget.item, quantity: 1),
+                              ],
+                            ),
                           ),
                         ),
                   style: ElevatedButton.styleFrom(

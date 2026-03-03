@@ -25,6 +25,7 @@ class AppOrder {
   final double total;
   final DateTime createdAt;
   OrderTab tab;
+  bool hasSlip;
 
   AppOrder({
     required this.id,
@@ -32,6 +33,7 @@ class AppOrder {
     required this.total,
     required this.createdAt,
     this.tab = OrderTab.toPay,
+    this.hasSlip = false,
   });
 
   Duration get timeRemaining {
@@ -61,6 +63,7 @@ class OrdersProvider extends ChangeNotifier {
   void placeOrders({
     required List<Map<String, dynamic>> items,
     required OrderTab tab,
+    bool hasSlip = false,
   }) {
     final orderItems = items
         .map(
@@ -86,6 +89,7 @@ class OrdersProvider extends ChangeNotifier {
         total: total,
         createdAt: DateTime.now(),
         tab: tab,
+        hasSlip: hasSlip,
       ),
     );
     _nextId++;
@@ -95,6 +99,15 @@ class OrdersProvider extends ChangeNotifier {
       _orderedItemIds.add(i.itemId);
     }
     notifyListeners();
+  }
+
+  /// Mark an existing order as having a slip uploaded.
+  void markSlipUploaded(String orderId) {
+    final idx = _orders.indexWhere((o) => o.id == orderId);
+    if (idx != -1) {
+      _orders[idx].hasSlip = true;
+      notifyListeners();
+    }
   }
 
   /// Cancel and remove an order, freeing its items.

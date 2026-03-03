@@ -1,13 +1,14 @@
-// lib/features/profile_screen.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_locale_provider.dart';
 import '../providers/favorites_provider.dart';
-import '../core/address_service.dart';
 import '../models/address_model.dart';
+import '../core/address_service.dart';
+import 'account_settings_screen.dart';
 import 'auth.dart';
 
+// ─── Design Tokens ──────────────────────────────────────────────
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
   @override
@@ -248,7 +249,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   _MenuItem(
                     icon: Icons.person_outline_rounded,
                     label: s.account,
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const AccountSettingsScreen(),
+                        ),
+                      );
+                    },
                   ),
                   _MenuItem(
                     icon: Icons.phone_iphone_rounded,
