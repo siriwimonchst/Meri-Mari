@@ -1,7 +1,9 @@
 // lib/features/main_screen.dart
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/app_locale_provider.dart';
 import 'home.dart';
-import 'explore_screen.dart';
+import 'orders.dart';
 import 'favorite_screen.dart';
 import 'profile_screen.dart';
 
@@ -17,25 +19,26 @@ class _MainScreenState extends State<MainScreen> {
 
   final List<Widget> _screens = const [
     HomeScreen(),
-    ExploreScreen(),
+    OrdersScreen(),
     FavoriteScreen(),
     ProfileScreen(),
   ];
 
-  static const _navItems = [
-    _NavData(icon: Icons.home_rounded, label: 'Home'),
-    _NavData(icon: Icons.explore_rounded, label: 'Explore'),
-    _NavData(icon: Icons.favorite_rounded, label: 'Favorite'),
-    _NavData(icon: Icons.person_rounded, label: 'Profile'),
-  ];
-
   @override
   Widget build(BuildContext context) {
+    final s = context.watch<AppLocaleProvider>().strings;
+    final navItems = [
+      _NavData(icon: Icons.home_rounded, label: s.home),
+      _NavData(icon: Icons.inventory_2_outlined, label: s.navOrders),
+      _NavData(icon: Icons.favorite_rounded, label: s.favorites),
+      _NavData(icon: Icons.person_rounded, label: s.navProfile),
+    ];
+
     return Scaffold(
       body: IndexedStack(index: _currentIndex, children: _screens),
       bottomNavigationBar: _BottomNav(
         currentIndex: _currentIndex,
-        items: _navItems,
+        items: navItems,
         onTap: (i) => setState(() => _currentIndex = i),
       ),
     );
@@ -59,6 +62,8 @@ class _BottomNav extends StatelessWidget {
     required this.onTap,
   });
 
+  static const _purple = Color(0xFFAB9DC4);
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -72,7 +77,7 @@ class _BottomNav extends StatelessWidget {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.deepPurple.withOpacity(0.1),
+            color: const Color(0xFFAB9DC4).withValues(alpha: 0.12),
             blurRadius: 24,
             offset: const Offset(0, -6),
           ),
@@ -82,9 +87,7 @@ class _BottomNav extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: List.generate(items.length, (i) {
           final selected = i == currentIndex;
-          final color = selected
-              ? const Color(0xFF6A1B9A)
-              : Colors.grey.shade400;
+          final color = selected ? _purple : Colors.grey.shade400;
           return GestureDetector(
             onTap: () => onTap(i),
             behavior: HitTestBehavior.opaque,
@@ -93,13 +96,9 @@ class _BottomNav extends StatelessWidget {
               curve: Curves.easeOutCubic,
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
               decoration: BoxDecoration(
-                gradient: selected
-                    ? const LinearGradient(
-                        colors: [Color(0xFFEDE7F6), Color(0xFFE1BEE7)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      )
-                    : null,
+                color: selected
+                    ? const Color(0xFFAB9DC4).withValues(alpha: 0.12)
+                    : Colors.transparent,
                 borderRadius: BorderRadius.circular(24),
               ),
               child: Column(

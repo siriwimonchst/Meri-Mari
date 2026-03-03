@@ -10,21 +10,23 @@ class ItemProvider with ChangeNotifier {
   bool _isLoading = true;
   String? _error;
   String _searchQuery = '';
-  String _selectedCondition = 'All';
+  Set<String> _selectedTags = {};
 
   // ─── Getters ─────────────────────────────────────────────────────────────
   bool get isLoading => _isLoading;
   String? get error => _error;
-  String get selectedCondition => _selectedCondition;
+  Set<String> get selectedTags => _selectedTags;
 
   List<ItemModel> get filteredItems {
     return _items.where((item) {
       final matchSearch = item.name.toLowerCase().contains(
         _searchQuery.toLowerCase(),
       );
-      final matchCondition =
-          _selectedCondition == 'All' || item.condition == _selectedCondition;
-      return matchSearch && matchCondition;
+      // If no tags selected, show all. Otherwise item must have at least one matching tag.
+      final matchTags =
+          _selectedTags.isEmpty ||
+          item.tags.any((t) => _selectedTags.contains(t));
+      return matchSearch && matchTags;
     }).toList();
   }
 
@@ -59,8 +61,22 @@ class ItemProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  void setCondition(String condition) {
-    _selectedCondition = condition;
+  void toggleTag(String tag) {
+    if (_selectedTags.contains(tag)) {
+      _selectedTags = {..._selectedTags}..remove(tag);
+    } else {
+      _selectedTags = {..._selectedTags, tag};
+    }
+    notifyListeners();
+  }
+
+  void clearTags() {
+    _selectedTags = {};
+    notifyListeners();
+  }
+
+  void setTags(Set<String> tags) {
+    _selectedTags = tags;
     notifyListeners();
   }
 }

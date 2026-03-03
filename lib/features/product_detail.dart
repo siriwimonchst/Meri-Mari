@@ -1,123 +1,401 @@
 // lib/features/product_detail.dart
 import 'package:flutter/material.dart';
-import '../models/item_model.dart'; 
-import 'orders.dart'; 
+import 'package:provider/provider.dart';
+import '../models/item_model.dart';
+import '../providers/cart_provider.dart';
+import '../providers/favorites_provider.dart';
+import '../providers/app_locale_provider.dart';
+import 'orders.dart';
+import '../providers/orders_provider.dart';
 
-class ProductDetailScreen extends StatelessWidget {
+// ─── Design tokens ────────────────────────────────────────────────────────────
+const _kPurple = Color(0xFF7B5EA7);
+const _kPurpleFaint = Color(0xFFF4F0FA);
+const _kPurpleBorder = Color(0xFFDDD6E8);
+const _kText = Color(0xFF1A1A2E);
+const _kSubText = Color(0xFFB0A8C4);
+
+class ProductDetailScreen extends StatefulWidget {
   final ItemModel item;
-
   const ProductDetailScreen({super.key, required this.item});
 
   @override
+  State<ProductDetailScreen> createState() => _ProductDetailScreenState();
+}
+
+class _ProductDetailScreenState extends State<ProductDetailScreen>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _heartCtrl;
+  late Animation<double> _heartScale;
+  final PageController _imageCtrl = PageController();
+  int _imagePage = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _heartCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+    _heartScale = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.4), weight: 50),
+      TweenSequenceItem(tween: Tween(begin: 1.4, end: 1.0), weight: 50),
+    ]).animate(CurvedAnimation(parent: _heartCtrl, curve: Curves.easeInOut));
+  }
+
+  @override
+  void dispose() {
+    _heartCtrl.dispose();
+    _imageCtrl.dispose();
+    super.dispose();
+  }
+
+  void _toggleFavorite() {
+    _heartCtrl.forward(from: 0);
+    context.read<FavoritesProvider>().toggleFavorite(widget.item);
+  }
+
+  void _addToCart() {
+    context.read<CartProvider>().addItem(widget.item);
+    final s = context.read<AppLocaleProvider>().strings;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(
+              Icons.check_circle_outline,
+              color: Colors.white,
+              size: 18,
+            ),
+            const SizedBox(width: 10),
+            Text(s.addedToCart),
+          ],
+        ),
+        backgroundColor: _kPurple,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 1),
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final isFav = context.watch<FavoritesProvider>().isFavorite(widget.item.id);
+    final s = context.watch<AppLocaleProvider>().strings;
+    final isOrdered = context.watch<OrdersProvider>().isOrdered(widget.item.id);
+    final images = widget.item.imageUrls;
+    final hasMultipleImages = images.length > 1;
+
     return Scaffold(
       backgroundColor: Colors.white,
-      // 1. ทำให้หน้าจอขยายไปสุดขอบบน (ใต้ AppBar โปร่งใส)
-      extendBodyBehindAppBar: true, 
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        // ปุ่มย้อนกลับแบบวงกลม เพื่อให้มองเห็นชัดเจนบนรูปภาพ
         leading: Padding(
-          padding: const EdgeInsets.all(8.0),
+          padding: const EdgeInsets.all(8),
           child: CircleAvatar(
-            backgroundColor: Colors.white.withOpacity(0.9),
+            backgroundColor: Colors.white.withValues(alpha: 0.9),
             child: IconButton(
-              icon: Icon(Icons.arrow_back_ios_new_rounded, color: Colors.deepPurple.shade800, size: 20),
+              icon: const Icon(
+                Icons.arrow_back_ios_new_rounded,
+                color: _kText,
+                size: 18,
+              ),
               onPressed: () => Navigator.pop(context),
             ),
           ),
         ),
-      ),
-      
-      body: SingleChildScrollView(
-        child: Stack(
-          children: [
-            // 2. รูปภาพสินค้า (อยู่ด้านหลังสุด)
-            SizedBox(
-              width: double.infinity,
-              height: 420, // เพิ่มความสูงให้รูปดูอลังการขึ้น
-              child: Image.network(
-                item.imageUrl,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) =>
-                    Container(
-                      color: Colors.deepPurple.shade50,
-                      child: Icon(Icons.image_not_supported_rounded, size: 80, color: Colors.deepPurple.shade200),
-                    ),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: CircleAvatar(
+              backgroundColor: Colors.white.withValues(alpha: 0.9),
+              child: ScaleTransition(
+                scale: _heartScale,
+                child: IconButton(
+                  icon: Icon(
+                    isFav
+                        ? Icons.favorite_rounded
+                        : Icons.favorite_border_rounded,
+                    color: isFav ? _kPurple : Colors.black87,
+                    size: 20,
+                  ),
+                  onPressed: _toggleFavorite,
+                ),
               ),
             ),
-            
-            // 3. ส่วนข้อมูลสินค้า (ซ้อนทับรูปภาพและมีมุมโค้ง)
+          ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Image Carousel ──────────────────────────────────────────
+            SizedBox(
+              width: double.infinity,
+              height: 380,
+              child: Stack(
+                children: [
+                  // PageView of images
+                  PageView.builder(
+                    controller: _imageCtrl,
+                    itemCount: images.isEmpty ? 1 : images.length,
+                    onPageChanged: (p) => setState(() => _imagePage = p),
+                    itemBuilder: (ctx, i) {
+                      if (images.isEmpty) {
+                        return Container(
+                          color: _kPurpleFaint,
+                          child: const Icon(
+                            Icons.image_not_supported_rounded,
+                            size: 80,
+                            color: _kPurpleBorder,
+                          ),
+                        );
+                      }
+                      return Image.network(
+                        images[i],
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        errorBuilder: (_, __, ___) => Container(
+                          color: _kPurpleFaint,
+                          child: const Icon(
+                            Icons.image_not_supported_rounded,
+                            size: 80,
+                            color: _kPurpleBorder,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+
+                  // Dot indicators (only show when multiple images)
+                  if (hasMultipleImages)
+                    Positioned(
+                      bottom: 32,
+                      left: 0,
+                      right: 0,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: List.generate(images.length, (i) {
+                          final isActive = i == _imagePage;
+                          return AnimatedContainer(
+                            duration: const Duration(milliseconds: 250),
+                            margin: const EdgeInsets.symmetric(horizontal: 3),
+                            width: isActive ? 20 : 6,
+                            height: 6,
+                            decoration: BoxDecoration(
+                              color: isActive
+                                  ? Colors.white
+                                  : Colors.white.withValues(alpha: 0.5),
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                          );
+                        }),
+                      ),
+                    ),
+
+                  // Image counter badge (top right)
+                  if (hasMultipleImages)
+                    Positioned(
+                      top: 56,
+                      right: 12,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.45),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          '${_imagePage + 1}/${images.length}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  // Out of stock overlay (when item is in an active order)
+                  if (isOrdered)
+                    Positioned.fill(
+                      child: Container(
+                        color: const Color(0xFF7B5EA7).withValues(alpha: 0.70),
+                        child: Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.do_not_disturb_on_rounded,
+                                color: Colors.white,
+                                size: 48,
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                s.isThai ? 'สินค้าหมด' : 'Out of Stock',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 26,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 1,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                s.isThai
+                                    ? 'สินค้าชิ้นนี้ถูกจองแล้ว'
+                                    : 'This item is already reserved',
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+
+            // ── Info Card ───────────────────────────────────────────────
             Container(
-              margin: const EdgeInsets.only(top: 380), // ขยับลงมาให้เห็นรูป และซ้อนทับรูป 40px
               decoration: const BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(32)), // มุมโค้งด้านบน
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
               ),
+              transform: Matrix4.translationValues(0, -20, 0),
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(24, 32, 24, 40),
+                padding: const EdgeInsets.fromLTRB(24, 28, 24, 40),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // ชื่อสินค้าและราคา
-                    Text(
-                      item.name,
-                      style: TextStyle(
-                        fontSize: 28, 
-                        fontWeight: FontWeight.w800, 
-                        color: Colors.deepPurple.shade900,
-                        height: 1.2,
-                      ),
+                    // Name + Price row
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            widget.item.name,
+                            style: const TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.w900,
+                              color: _kText,
+                              height: 1.2,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          '฿${widget.item.price.toStringAsFixed(0)}',
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                            color: _kPurple,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '${item.price} THB',
-                      style: const TextStyle(
-                        fontSize: 24, 
-                        fontWeight: FontWeight.bold, 
-                        color: Colors.orange,
+                    const SizedBox(height: 20),
+
+                    // Tags section
+                    if (widget.item.tags.isNotEmpty) ...[
+                      Text(
+                        s.tagsLabel,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: _kSubText,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 28),
-                    
-                    // 4. กล่องรายละเอียดสินค้า (ดีไซน์เป็นกล่องสีพาสเทล)
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: widget.item.tags.map((tag) {
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _kPurpleFaint,
+                              borderRadius: BorderRadius.circular(50),
+                              border: Border.all(
+                                color: _kPurpleBorder,
+                                width: 1.5,
+                              ),
+                            ),
+                            child: Text(
+                              s.tagLabel(tag),
+                              style: const TextStyle(
+                                color: _kPurple,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                      const SizedBox(height: 20),
+                    ],
+
+                    // Details box
                     Container(
-                      padding: const EdgeInsets.all(20),
+                      padding: const EdgeInsets.all(18),
                       decoration: BoxDecoration(
-                        color: Colors.deepPurple.shade50,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.deepPurple.withOpacity(0.1)),
+                        color: _kPurpleFaint,
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: _kPurpleBorder, width: 1),
                       ),
                       child: Column(
                         children: [
-                          _buildDetailRow('คอลเลกชัน (Collection)', item.collection),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 12.0),
-                            child: Divider(color: Colors.deepPurple.withOpacity(0.15), height: 1),
+                          _DetailRow(
+                            label: s.collection,
+                            value: widget.item.collection,
                           ),
-                          _buildDetailRow('สภาพสินค้า (Condition)', item.condition),
                           Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 12.0),
-                            child: Divider(color: Colors.deepPurple.withOpacity(0.15), height: 1),
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            child: Divider(color: _kPurpleBorder, height: 1),
                           ),
-                          _buildDetailRow('ค่าจัดส่งโดยประมาณ', '${item.shippingCost} THB'),
+                          _DetailRow(
+                            label: s.shipping,
+                            value:
+                                '฿${widget.item.shippingCost.toStringAsFixed(0)}',
+                          ),
                         ],
                       ),
                     ),
-                    
-                    const SizedBox(height: 32),
-                    
-                    // 5. คำอธิบายเพิ่มเติม
+                    const SizedBox(height: 24),
+
+                    // Description
                     Text(
-                      'รายละเอียดเพิ่มเติม',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.deepPurple.shade800),
+                      s.details,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: _kText,
+                      ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
                     Text(
-                      'สินค้าลิขสิทธิ์แท้ 100% จัดส่งผ่านระบบคนกลาง (Escrow) เพื่อความปลอดภัยสูงสุด เงินของคุณจะถูกโอนให้ผู้ขายเมื่อคุณได้รับและตรวจสอบสินค้าเรียบร้อยแล้วเท่านั้น',
-                      style: TextStyle(color: Colors.grey.shade600, height: 1.6, fontSize: 15),
+                      s.productDesc,
+                      style: const TextStyle(
+                        color: _kSubText,
+                        height: 1.6,
+                        fontSize: 14,
+                      ),
                     ),
+                    const SizedBox(height: 100),
                   ],
                 ),
               ),
@@ -125,61 +403,115 @@ class ProductDetailScreen extends StatelessWidget {
           ],
         ),
       ),
-      
-      // 6. แถบปุ่มกดด้านล่าง (มีเงาบางๆ แยกส่วนจากเนื้อหา)
+
+      // Bottom action bar
       bottomNavigationBar: Container(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.deepPurple.withOpacity(0.05),
+              color: _kPurple.withValues(alpha: 0.08),
               blurRadius: 20,
-              offset: const Offset(0, -5),
+              offset: const Offset(0, -4),
             ),
           ],
         ),
         child: SafeArea(
-          child: SizedBox(
-            height: 56, // ปรับปุ่มให้สูงกำลังดี
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.deepPurple.shade600,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
+          child: Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: isOrdered ? null : _addToCart,
+                  icon: const Icon(Icons.shopping_bag_outlined, size: 18),
+                  label: Text(
+                    isOrdered
+                        ? (s.isThai ? 'สินค้าหมด' : 'Out of Stock')
+                        : s.addToCart,
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: isOrdered ? Colors.grey : _kPurple,
+                    side: BorderSide(
+                      color: isOrdered ? Colors.grey.shade300 : _kPurple,
+                      width: 1.5,
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    textStyle: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ),
-                elevation: 0,
               ),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const OrdersScreen()),
-                );
-              },
-              child: const Text(
-                'ซื้อสินค้า (ระบบคนกลาง Escrow)',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: isOrdered
+                      ? null
+                      : () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const OrdersScreen(),
+                          ),
+                        ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: isOrdered
+                        ? Colors.grey.shade300
+                        : _kPurple,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    textStyle: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  child: Text(
+                    isOrdered
+                        ? (s.isThai ? 'ไม่สามารถสั่งซื้อได้' : 'Unavailable')
+                        : s.buyNow,
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
         ),
       ),
     );
   }
+}
 
-  // Widget ตัวช่วยสำหรับสร้างแถวรายละเอียดซ้าย-ขวา ให้ดูสะอาดตา
-  Widget _buildDetailRow(String label, String value) {
+class _DetailRow extends StatelessWidget {
+  final String label;
+  final String value;
+  const _DetailRow({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
-          label, 
-          style: TextStyle(color: Colors.deepPurple.shade300, fontSize: 14, fontWeight: FontWeight.w600)
+          label,
+          style: const TextStyle(
+            color: _kSubText,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+          ),
         ),
         Text(
-          value, 
-          style: TextStyle(color: Colors.deepPurple.shade800, fontWeight: FontWeight.bold, fontSize: 15)
+          value,
+          style: const TextStyle(
+            color: _kText,
+            fontWeight: FontWeight.w700,
+            fontSize: 14,
+          ),
         ),
       ],
     );

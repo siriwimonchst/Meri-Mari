@@ -1,111 +1,112 @@
-// lib/features/auth.dart
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:provider/provider.dart';
+import '../providers/favorites_provider.dart';
+import 'auth_widgets.dart';
 import 'main_screen.dart';
 import 'register.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
-
   @override
   State<AuthScreen> createState() => _AuthScreenState();
 }
 
-class _AuthScreenState extends State<AuthScreen>
-    with SingleTickerProviderStateMixin {
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  bool _isLoading = false;
-  bool _obscurePassword = true;
-  late AnimationController _animCtrl;
-  late Animation<double> _fadeAnim;
-  late Animation<Offset> _slideAnim;
+class _AuthScreenState extends State<AuthScreen> {
+  final _emailCtrl = TextEditingController();
+  final _passCtrl = TextEditingController();
+  bool _loading = false;
+  bool _obscure = true;
 
-  @override
-  void initState() {
-    super.initState();
-    _animCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 900),
-    );
-    _fadeAnim = CurvedAnimation(parent: _animCtrl, curve: Curves.easeOut);
-    _slideAnim = Tween<Offset>(
-      begin: const Offset(0, 0.15),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _animCtrl, curve: Curves.easeOutCubic));
-    _animCtrl.forward();
-  }
+  static const _purple = Color(0xFFAB9DC4);
 
   @override
   void dispose() {
-    _animCtrl.dispose();
-    _emailController.dispose();
-    _passwordController.dispose();
+    _emailCtrl.dispose();
+    _passCtrl.dispose();
     super.dispose();
   }
 
-  Future<void> _login() async {
-    final email = _emailController.text.trim();
-    final password = _passwordController.text.trim();
-    if (email.isEmpty || password.isEmpty) {
+  Future<void> _loginWithEmail() async {
+    final email = _emailCtrl.text.trim();
+    final pass = _passCtrl.text.trim();
+    if (email.isEmpty || pass.isEmpty) {
       _showError('กรุณากรอก Email และ Password');
       return;
     }
-    setState(() => _isLoading = true);
+    setState(() => _loading = true);
     try {
       await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: email,
-        password: password,
+        password: pass,
       );
       if (!mounted) return;
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (_) => const MainScreen()),
-        (_) => false,
-      );
+      await _afterLogin();
     } on FirebaseAuthException catch (e) {
-      String msg;
-      switch (e.code) {
-        case 'user-not-found':
-        case 'invalid-credential':
-          msg = 'Email หรือ Password ไม่ถูกต้อง';
-          break;
-        case 'wrong-password':
-          msg = 'รหัสผ่านไม่ถูกต้อง';
-          break;
-        case 'invalid-email':
-          msg = 'รูปแบบ Email ไม่ถูกต้อง';
-          break;
-        case 'user-disabled':
-          msg = 'บัญชีนี้ถูกระงับการใช้งาน';
-          break;
-        case 'too-many-requests':
-          msg = 'ลองเข้าสู่ระบบบ่อยเกินไป กรุณารอสักครู่';
-          break;
-        default:
-          msg = 'เกิดข้อผิดพลาด: ${e.message}';
-      }
-      _showError(msg);
+      _showError(_authError(e.code));
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) setState(() => _loading = false);
     }
   }
 
-  void _showError(String message) {
+  Future<void> _loginWithGoogle() async {
+    setState(() => _loading = true);
+    try {
+      final googleUser = await GoogleSignIn().signIn();
+      if (googleUser == null) {
+        setState(() => _loading = false);
+        return;
+      }
+      final googleAuth = await googleUser.authentication;
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+      await FirebaseAuth.instance.signInWithCredential(credential);
+      if (!mounted) return;
+      await _afterLogin();
+    } catch (e) {
+      _showError('Google Sign-In ล้มเหลว: $e');
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _afterLogin() async {
+    await context.read<FavoritesProvider>().loadFavorites();
+    if (!mounted) return;
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => const MainScreen()),
+      (_) => false,
+    );
+  }
+
+  String _authError(String code) {
+    switch (code) {
+      case 'user-not-found':
+      case 'invalid-credential':
+        return 'Email หรือ Password ไม่ถูกต้อง';
+      case 'wrong-password':
+        return 'รหัสผ่านไม่ถูกต้อง';
+      case 'invalid-email':
+        return 'รูปแบบ Email ไม่ถูกต้อง';
+      case 'too-many-requests':
+        return 'ลองเข้าสู่ระบบบ่อยเกินไป';
+      default:
+        return 'เกิดข้อผิดพลาด';
+    }
+  }
+
+  void _showError(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.error_outline, color: Colors.white, size: 20),
-            const SizedBox(width: 10),
-            Expanded(child: Text(message)),
-          ],
-        ),
-        backgroundColor: const Color(0xFFE53935),
+        content: Text(msg),
+        backgroundColor: const Color(0xFFC62828),
         behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.all(16),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       ),
     );
   }
@@ -113,294 +114,153 @@ class _AuthScreenState extends State<AuthScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       body: Stack(
         children: [
-          // — Gradient background —
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Color(0xFF4A148C),
-                  Color(0xFF7B1FA2),
-                  Color(0xFF9C27B0),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+          // ── Purple blob top-right ──────────────────────────────────────
+          Positioned(
+            top: -60,
+            right: -60,
+            child: Container(
+              width: 280,
+              height: 280,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [Color(0xFFD4C8E8), Color(0xFFAB9DC4)],
+                ),
               ),
             ),
           ),
-          // — Decorative blurred circles —
           Positioned(
-            top: -80,
-            right: -60,
-            child: _GlowCircle(
-              size: 260,
-              color: Colors.white.withOpacity(0.07),
+            top: 30,
+            right: 30,
+            child: Container(
+              width: 180,
+              height: 180,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [Colors.white, Color(0xFFEAE4F2)],
+                ),
+              ),
             ),
           ),
-          Positioned(
-            bottom: 60,
-            left: -90,
-            child: _GlowCircle(
-              size: 300,
-              color: Colors.white.withOpacity(0.05),
-            ),
-          ),
-          // — Content —
+
+          // ── Content ───────────────────────────────────────────────────
           SafeArea(
-            child: Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 28),
-                child: FadeTransition(
-                  opacity: _fadeAnim,
-                  child: SlideTransition(
-                    position: _slideAnim,
-                    child: Column(
-                      children: [
-                        const SizedBox(height: 20),
-                        // Logo
-                        Container(
-                          width: 90,
-                          height: 90,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.15),
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: Colors.white.withOpacity(0.3),
-                              width: 1.5,
-                            ),
-                          ),
-                          child: const Icon(
-                            Icons.lock_person_rounded,
-                            size: 44,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(height: 22),
-                        const Text(
-                          'Meri Mari',
-                          style: TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.w900,
-                            color: Colors.white,
-                            letterSpacing: 1,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          'Sign in to continue',
-                          style: TextStyle(
-                            fontSize: 15,
-                            color: Colors.white.withOpacity(0.7),
-                          ),
-                        ),
-                        const SizedBox(height: 36),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 28),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 140),
 
-                        // — Glass card —
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(28),
-                          child: BackdropFilter(
-                            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-                            child: Container(
-                              padding: const EdgeInsets.all(28),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.13),
-                                borderRadius: BorderRadius.circular(28),
-                                border: Border.all(
-                                  color: Colors.white.withOpacity(0.25),
-                                  width: 1.2,
-                                ),
-                              ),
-                              child: Column(
-                                children: [
-                                  _GlassField(
-                                    controller: _emailController,
-                                    hintText: 'Email Address',
-                                    icon: Icons.email_outlined,
-                                    keyboardType: TextInputType.emailAddress,
-                                  ),
-                                  const SizedBox(height: 16),
-                                  _GlassField(
-                                    controller: _passwordController,
-                                    hintText: 'Password',
-                                    icon: Icons.lock_outline,
-                                    obscure: _obscurePassword,
-                                    onSuffixTap: () => setState(
-                                      () =>
-                                          _obscurePassword = !_obscurePassword,
-                                    ),
-                                    onSubmitted: (_) => _login(),
-                                  ),
-                                  const SizedBox(height: 28),
-
-                                  // Login button
-                                  SizedBox(
-                                    width: double.infinity,
-                                    height: 54,
-                                    child: ElevatedButton(
-                                      onPressed: _isLoading ? null : _login,
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.white,
-                                        foregroundColor: const Color(
-                                          0xFF6A1B9A,
-                                        ),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            16,
-                                          ),
-                                        ),
-                                        elevation: 0,
-                                      ),
-                                      child: _isLoading
-                                          ? const SizedBox(
-                                              width: 22,
-                                              height: 22,
-                                              child: CircularProgressIndicator(
-                                                strokeWidth: 2.5,
-                                                color: Color(0xFF6A1B9A),
-                                              ),
-                                            )
-                                          : const Text(
-                                              'Login',
-                                              style: TextStyle(
-                                                fontSize: 17,
-                                                fontWeight: FontWeight.w800,
-                                                letterSpacing: 1,
-                                              ),
-                                            ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-
-                        const SizedBox(height: 28),
-                        // Sign up link
-                        GestureDetector(
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const RegisterScreen(),
-                            ),
-                          ),
-                          child: RichText(
-                            text: TextSpan(
-                              text: "Don't have an account? ",
-                              style: TextStyle(
-                                color: Colors.white.withOpacity(0.7),
-                                fontSize: 14,
-                              ),
-                              children: const [
-                                TextSpan(
-                                  text: 'Sign up',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w800,
-                                    decoration: TextDecoration.underline,
-                                    decorationColor: Colors.white,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                      ],
+                  // Title
+                  const Text(
+                    'Login',
+                    style: TextStyle(
+                      fontSize: 36,
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF1A1A2E),
                     ),
                   ),
-                ),
+                  const SizedBox(height: 6),
+                  GestureDetector(
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const RegisterScreen()),
+                    ),
+                    child: RichText(
+                      text: const TextSpan(
+                        text: "Don't have an account? ",
+                        style: TextStyle(color: Colors.grey, fontSize: 14),
+                        children: [
+                          TextSpan(
+                            text: 'sign up',
+                            style: TextStyle(
+                              color: _purple,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 36),
+
+                  // Email field
+                  AuthInputField(
+                    controller: _emailCtrl,
+                    hint: 'Email',
+                    icon: Icons.email_outlined,
+                    keyboardType: TextInputType.emailAddress,
+                  ),
+                  const SizedBox(height: 14),
+
+                  // Password field
+                  AuthInputField(
+                    controller: _passCtrl,
+                    hint: 'Password',
+                    icon: Icons.lock_outline,
+                    obscure: _obscure,
+                    suffix: TextButton(
+                      onPressed: () => setState(() => _obscure = !_obscure),
+                      child: Text(
+                        'FORGOT',
+                        style: TextStyle(
+                          color: _purple,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    onSubmitted: (_) => _loginWithEmail(),
+                  ),
+                  const SizedBox(height: 36),
+
+                  // Login button (right-aligned)
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: AuthPillButton(
+                      label: 'Login',
+                      icon: Icons.arrow_forward_rounded,
+                      loading: _loading,
+                      onPressed: _loginWithEmail,
+                    ),
+                  ),
+                  const SizedBox(height: 48),
+
+                  // Divider
+                  Row(
+                    children: [
+                      const Expanded(child: Divider()),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: Text(
+                          'or',
+                          style: TextStyle(
+                            color: Colors.grey.shade400,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                      const Expanded(child: Divider()),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Google sign-in
+                  AuthGoogleButton(
+                    onPressed: _loading ? null : _loginWithGoogle,
+                  ),
+                  const SizedBox(height: 40),
+                ],
               ),
             ),
           ),
         ],
       ),
-    );
-  }
-}
-
-// ── Reusable glass text field ──────────────────────────────────────────────────
-class _GlassField extends StatelessWidget {
-  final TextEditingController controller;
-  final String hintText;
-  final IconData icon;
-  final bool obscure;
-  final VoidCallback? onSuffixTap;
-  final TextInputType? keyboardType;
-  final Function(String)? onSubmitted;
-
-  const _GlassField({
-    required this.controller,
-    required this.hintText,
-    required this.icon,
-    this.obscure = false,
-    this.onSuffixTap,
-    this.keyboardType,
-    this.onSubmitted,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return TextField(
-      controller: controller,
-      obscureText: obscure,
-      keyboardType: keyboardType,
-      onSubmitted: onSubmitted,
-      style: const TextStyle(color: Colors.white, fontSize: 15),
-      decoration: InputDecoration(
-        hintText: hintText,
-        hintStyle: TextStyle(
-          color: Colors.white.withOpacity(0.5),
-          fontSize: 15,
-        ),
-        prefixIcon: Icon(icon, color: Colors.white.withOpacity(0.7), size: 22),
-        suffixIcon: onSuffixTap != null
-            ? IconButton(
-                icon: Icon(
-                  obscure
-                      ? Icons.visibility_off_outlined
-                      : Icons.visibility_outlined,
-                  color: Colors.white.withOpacity(0.6),
-                  size: 20,
-                ),
-                onPressed: onSuffixTap,
-              )
-            : null,
-        filled: true,
-        fillColor: Colors.white.withOpacity(0.12),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(
-            color: Colors.white.withOpacity(0.6),
-            width: 1.5,
-          ),
-        ),
-        contentPadding: const EdgeInsets.symmetric(
-          vertical: 18,
-          horizontal: 16,
-        ),
-      ),
-    );
-  }
-}
-
-// ── Decorative glow circle ─────────────────────────────────────────────────────
-class _GlowCircle extends StatelessWidget {
-  final double size;
-  final Color color;
-  const _GlowCircle({required this.size, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(shape: BoxShape.circle, color: color),
     );
   }
 }
