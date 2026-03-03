@@ -120,7 +120,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             const SizedBox(height: 16),
             _LangOption(
-              flag: '🇬🇧',
               label: 'English UK',
               selected: !locale.isThai,
               onTap: () {
@@ -130,7 +129,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             const SizedBox(height: 10),
             _LangOption(
-              flag: '🇹🇭',
               label: 'ภาษาไทย',
               selected: locale.isThai,
               onTap: () {
@@ -961,13 +959,11 @@ class _FormField2 extends StatelessWidget {
 // ── Language Option Row ────────────────────────────────────────────────────
 
 class _LangOption extends StatelessWidget {
-  final String flag;
   final String label;
   final bool selected;
   final VoidCallback onTap;
 
   const _LangOption({
-    required this.flag,
     required this.label,
     required this.selected,
     required this.onTap,
@@ -990,8 +986,6 @@ class _LangOption extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Text(flag, style: const TextStyle(fontSize: 24)),
-            const SizedBox(width: 14),
             Expanded(
               child: Text(
                 label,

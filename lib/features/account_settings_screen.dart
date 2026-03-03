@@ -1,6 +1,10 @@
 // lib/features/account_settings_screen.dart
+import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_locale_provider.dart';
 
@@ -76,16 +80,68 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   }
 
   Future<void> _uploadPicture() async {
-    // In a real app with Firebase Storage, you'd use image_picker here.
-    // Since Firebase Storage might not be configured, we just show a mockup or URL update.
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Upload profile picture feature is pending storage configuration.',
-        ),
-        backgroundColor: Colors.orange,
-      ),
+    if (_user == null) return;
+
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 800,
+      maxHeight: 800,
+      imageQuality: 85,
     );
+
+    if (pickedFile == null) return;
+
+    setState(() => _isLoading = true);
+    try {
+      final storageRef = FirebaseStorage.instance.ref().child(
+        'users/${_user!.uid}/profile_picture.jpg',
+      );
+
+      if (kIsWeb) {
+        final bytes = await pickedFile.readAsBytes();
+        await storageRef.putData(
+          bytes,
+          SettableMetadata(contentType: 'image/jpeg'),
+        );
+      } else {
+        await storageRef.putFile(
+          File(pickedFile.path),
+          SettableMetadata(contentType: 'image/jpeg'),
+        );
+      }
+
+      final downloadUrl = await storageRef.getDownloadURL();
+      await _user!.updatePhotoURL(downloadUrl);
+      await _user!.reload();
+
+      if (!mounted) return;
+      setState(() {
+        _user = FirebaseAuth.instance.currentUser;
+      });
+
+      final s = context.read<AppLocaleProvider>().strings;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            s.isThai
+                ? 'อัปโหลดรูปภาพสำเร็จ'
+                : 'Profile picture uploaded successfully',
+          ),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error uploading picture: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   Future<void> _deletePicture() async {
