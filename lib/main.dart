@@ -9,6 +9,7 @@ import 'providers/favorites_provider.dart';
 import 'providers/app_locale_provider.dart';
 import 'providers/address_provider.dart';
 import 'providers/orders_provider.dart';
+
 import 'firebase_options.dart';
 import 'splash_screen.dart';
 
@@ -25,6 +26,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => AppLocaleProvider()),
         ChangeNotifierProvider(create: (_) => AddressProvider()),
         ChangeNotifierProvider(create: (_) => OrdersProvider()),
+
       ],
       child: const MyApp(),
     ),

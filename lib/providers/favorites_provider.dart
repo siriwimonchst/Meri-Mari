@@ -54,6 +54,23 @@ class FavoritesProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> removeMultiple(List<String> ids) async {
+    final ref = _ref();
+    if (ref == null) return;
+
+    // Local update
+    _favoriteIds.removeAll(ids);
+    _favoriteItems.removeWhere((i) => ids.contains(i.id));
+    notifyListeners();
+
+    // Firestore update (using batch)
+    final batch = FirebaseFirestore.instance.batch();
+    for (final id in ids) {
+      batch.delete(ref.doc(id));
+    }
+    await batch.commit();
+  }
+
   /// Call on logout to clear local state
   void clear() {
     _favoriteIds.clear();

@@ -4,13 +4,15 @@ import 'package:provider/provider.dart';
 import '../providers/item_provider.dart';
 import '../providers/app_locale_provider.dart';
 import 'product_detail.dart';
+import '../widgets/product_card.dart';
+import '../core/app_theme.dart';
 
-const _kPurple = Color(0xFF7B5EA7);
-const _kPurpleLight = Color(0xFFAB9DC4);
-const _kPurpleFaint = Color(0xFFF4F0FA);
-const _kPurpleBorder = Color(0xFFDDD6E8);
-const _kText = Color(0xFF1A1A2E);
-const _kSubText = Color(0xFF666666);
+const _kPurple       = kPurple;
+const _kPurpleLight  = kPurpleLight;
+const _kPurpleFaint  = kPurpleFaint;
+const _kPurpleBorder = kPurpleBorder;
+const _kText         = kText;
+const _kSubText      = Color(0xFF666666);
 
 class SearchResultsScreen extends StatefulWidget {
   final String initialQuery;
@@ -112,10 +114,9 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
                   Wrap(
                     spacing: 10,
                     runSpacing: 10,
-                    children: ['มือ 1', 'มือ 2', 'เช็คการ์ด', 'แบบสุ่ม'].map((
-                      label,
-                    ) {
-                      final key = label;
+                    children: s.predefinedTags.map((tagMap) {
+                      final key = tagMap['key']!;
+                      final label = tagMap['label']!;
                       final selected = tempTags.contains(key);
                       return GestureDetector(
                         onTap: () {
@@ -320,7 +321,8 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
               itemCount: items.length,
               itemBuilder: (context, index) {
                 final item = items[index];
-                return GestureDetector(
+                return MeriMariProductCard(
+                  item: item,
                   onTap: () {
                     Navigator.push(
                       context,
@@ -329,94 +331,6 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
                       ),
                     );
                   },
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(
-                            0xFFAB9DC4,
-                          ).withValues(alpha: 0.15),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // image area...
-                        Expanded(
-                          child: Stack(
-                            fit: StackFit.expand,
-                            children: [
-                              ClipRRect(
-                                borderRadius: const BorderRadius.vertical(
-                                  top: Radius.circular(20),
-                                ),
-                                child: Image.network(
-                                  item.imageUrl,
-                                  fit: BoxFit.cover,
-                                ),
-                              ),
-                              if (item.tags.isNotEmpty)
-                                Positioned(
-                                  bottom: 12,
-                                  left: 12,
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 4,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: _kPurple.withValues(alpha: 0.85),
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    child: Text(
-                                      item.tags.first,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                        // text area...
-                        Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                item.name,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 13,
-                                  color: _kText,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                '฿${item.price.toStringAsFixed(0)}',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 16,
-                                  color: _kPurple,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
                 );
               },
             ),

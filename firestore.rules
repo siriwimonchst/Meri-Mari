@@ -1,0 +1,96 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ─── Helper functions ────────────────────────────────────────────────────
+
+    /// Is the requester authenticated?
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    /// Does the requester own this resource (uid matches document userId)?
+    function isOwner(userId) {
+      return isAuth() && request.auth.uid == userId;
+    }
+
+    /// Is the incoming data a valid payment slip update (admin-controlled fields only)?
+    function isSlipStatusUpdate() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['slipStatus', 'slipUrl', 'slipUploadedAt', 'hasSlip']);
+    }
+
+    // ─── Users collection ────────────────────────────────────────────────────
+    // users/{uid}  — profile meta, display name, etc.
+    match /users/{uid} {
+      allow read, write: if isOwner(uid);
+
+      // ── Orders sub-collection ─────────────────────────────────────────────
+      // users/{uid}/orders/{orderId}
+      match /orders/{orderId} {
+        // Only the owning user may read their own orders.
+        allow read: if isOwner(uid);
+
+        // Only the owning user may create a new order.
+        allow create: if isOwner(uid)
+                      && request.resource.data.keys().hasAll(['id', 'items', 'total', 'createdAt', 'tab'])
+                      && request.resource.data.total is number
+                      && request.resource.data.total > 0;
+
+        // Only the owning user may update their order (e.g. upload slip, cancel).
+        // The 'tab' field can be moved; 'id' and 'createdAt' are immutable.
+        allow update: if isOwner(uid)
+                      && request.resource.data.id    == resource.data.id
+                      && request.resource.data.createdAt == resource.data.createdAt;
+
+        // Only the owning user may delete (cancel) their own order.
+        allow delete: if isOwner(uid);
+      }
+
+      // ── Addresses sub-collection ──────────────────────────────────────────
+      // users/{uid}/addresses/{addressId}
+      match /addresses/{addressId} {
+        allow read, create, update, delete: if isOwner(uid);
+      }
+    }
+
+    // ─── Items (products) collection ─────────────────────────────────────────
+    // items/{itemId}  — public catalogue; any authenticated user may read.
+    // Only sellers (verified via 'isSeller' flag on their user doc) may write.
+    match /items/{itemId} {
+      allow read: if isAuth();
+
+      // Seller write: requester must be authenticated AND their user doc
+      // must have isSeller == true AND the item's sellerId must match their uid.
+      allow create: if isAuth()
+                    && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isSeller == true
+                    && request.resource.data.sellerId == request.auth.uid;
+
+      allow update, delete: if isAuth()
+                            && resource.data.sellerId == request.auth.uid;
+    }
+
+    // ─── Payment slips collection ─────────────────────────────────────────────
+    // payment_slips/{slipId}  — used if you mirror slip metadata at the top level.
+    // Only the slip owner may read; only admin service account may update status.
+    // (Status updates normally happen via Cloud Functions, not from the client.)
+    match /payment_slips/{slipId} {
+      allow read: if isAuth() && resource.data.uid == request.auth.uid;
+      allow create: if isAuth() && request.resource.data.uid == request.auth.uid;
+      // Status updates (approve/reject) are handled by Cloud Functions / Admin SDK only.
+      allow update, delete: if false;
+    }
+
+    // ─── Seller shops collection ──────────────────────────────────────────────
+    // shops/{shopId}
+    match /shops/{shopId} {
+      allow read: if isAuth();
+      allow write: if isAuth() && resource.data.ownerId == request.auth.uid;
+    }
+
+    // ─── Deny everything else by default ─────────────────────────────────────
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

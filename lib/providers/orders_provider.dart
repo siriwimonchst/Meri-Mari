@@ -1,10 +1,25 @@
 // lib/providers/orders_provider.dart
+// ─── Order State + Firestore Persistence ──────────────────────────────────────
+// Orders are saved to `users/{uid}/orders` so they survive app restarts.
+// Auth-state changes trigger automatic reload — logging out clears local state.
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Data models
+// ─────────────────────────────────────────────────────────────────────────────
 
 enum OrderTab { toPay, toShip, toReceive, toRate }
 
+extension OrderTabJson on OrderTab {
+  String toJson() => name; // 'toPay', 'toShip', …
+  static OrderTab fromJson(String s) =>
+      OrderTab.values.firstWhere((e) => e.name == s, orElse: () => OrderTab.toPay);
+}
+
 class OrderItem {
-  final String itemId; // Firestore item document ID
+  final String itemId;
   final String name;
   final double price;
   final String imageUrl;
@@ -17,6 +32,22 @@ class OrderItem {
     required this.imageUrl,
     this.quantity = 1,
   });
+
+  Map<String, dynamic> toMap() => {
+        'itemId':   itemId,
+        'name':     name,
+        'price':    price,
+        'imageUrl': imageUrl,
+        'quantity': quantity,
+      };
+
+  factory OrderItem.fromMap(Map<String, dynamic> m) => OrderItem(
+        itemId:   (m['itemId'] as String?) ?? '',
+        name:     (m['name'] as String?) ?? '',
+        price:    (m['price'] as num?)?.toDouble() ?? 0,
+        imageUrl: (m['imageUrl'] as String?) ?? '',
+        quantity: (m['quantity'] as int?) ?? 1,
+      );
 }
 
 class AppOrder {
@@ -43,34 +74,131 @@ class AppOrder {
   }
 
   bool get isExpired => timeRemaining == Duration.zero;
+
+  Map<String, dynamic> toMap() => {
+        'id':        id,
+        'items':     items.map((i) => i.toMap()).toList(),
+        'total':     total,
+        'createdAt': Timestamp.fromDate(createdAt),
+        'tab':       tab.name,
+        'hasSlip':   hasSlip,
+      };
+
+  factory AppOrder.fromMap(Map<String, dynamic> m) {
+    final rawItems = m['items'];
+    final List<OrderItem> parsedItems = rawItems is List
+        ? rawItems
+            .map((e) => OrderItem.fromMap(Map<String, dynamic>.from(e as Map)))
+            .toList()
+        : [];
+
+    DateTime created;
+    final ts = m['createdAt'];
+    if (ts is Timestamp) {
+      created = ts.toDate();
+    } else {
+      created = DateTime.now();
+    }
+
+    return AppOrder(
+      id:        (m['id'] as String?) ?? '',
+      items:     parsedItems,
+      total:     (m['total'] as num?)?.toDouble() ?? 0,
+      createdAt: created,
+      tab:       OrderTabJson.fromJson((m['tab'] as String?) ?? 'toPay'),
+      hasSlip:   (m['hasSlip'] as bool?) ?? false,
+    );
+  }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Provider
+// ─────────────────────────────────────────────────────────────────────────────
+
 class OrdersProvider extends ChangeNotifier {
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
+
   final List<AppOrder> _orders = [];
-  // Set of Firestore item IDs that are currently in any active order
   final Set<String> _orderedItemIds = {};
-  int _nextId = 1;
+
+  /// Monotonically-increasing suffix for local order IDs within a session.
+  int _nextLocalSeq = 1;
 
   List<AppOrder> get orders => List.unmodifiable(_orders);
 
   List<AppOrder> ordersForTab(OrderTab tab) =>
       _orders.where((o) => o.tab == tab).toList();
 
-  /// Returns true if this item is in an existing active order.
   bool isOrdered(String itemId) => _orderedItemIds.contains(itemId);
 
-  /// Place all cart items together as a single order.
-  void placeOrders({
+  // ── Firestore helpers ───────────────────────────────────────────────────────
+
+  /// Returns the Firestore collection for the current user's orders.
+  /// Throws [StateError] when no user is signed in.
+  CollectionReference<Map<String, dynamic>> _ordersRef() {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) throw StateError('No authenticated user');
+    return _db.collection('users').doc(uid).collection('orders');
+  }
+
+  // ── Initialisation ──────────────────────────────────────────────────────────
+
+  OrdersProvider() {
+    // Reload orders whenever auth state changes.
+    FirebaseAuth.instance.authStateChanges().listen((user) {
+      if (user == null) {
+        _clearLocalState();
+      } else {
+        _loadOrders();
+      }
+    });
+  }
+
+  void _clearLocalState() {
+    _orders.clear();
+    _orderedItemIds.clear();
+    notifyListeners();
+  }
+
+  /// Fetches all orders from Firestore for the signed-in user.
+  Future<void> _loadOrders() async {
+    try {
+      final snap = await _ordersRef()
+          .orderBy('createdAt', descending: false)
+          .get();
+
+      _orders.clear();
+      _orderedItemIds.clear();
+
+      for (final doc in snap.docs) {
+        final order = AppOrder.fromMap(doc.data());
+        _orders.add(order);
+        for (final item in order.items) {
+          _orderedItemIds.add(item.itemId);
+        }
+      }
+      notifyListeners();
+    } catch (e) {
+      debugPrint('[OrdersProvider] _loadOrders error: $e');
+    }
+  }
+
+  // ── Public mutations ────────────────────────────────────────────────────────
+
+  /// Place all cart items as a single new order and persist to Firestore.
+  Future<void> placeOrders({
     required List<Map<String, dynamic>> items,
     required OrderTab tab,
     bool hasSlip = false,
-  }) {
+  }) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+
     final orderItems = items
         .map(
           (i) => OrderItem(
-            itemId: (i['itemId'] as String?) ?? '',
-            name: i['name'] as String,
-            price: (i['price'] as num).toDouble(),
+            itemId:   (i['itemId'] as String?) ?? '',
+            name:     i['name'] as String,
+            price:    (i['price'] as num).toDouble(),
             imageUrl: i['imageUrl'] as String? ?? '',
             quantity: (i['qty'] as int?) ?? 1,
           ),
@@ -79,44 +207,53 @@ class OrdersProvider extends ChangeNotifier {
 
     final total = orderItems.fold<double>(
       0,
-      (sum, i) => sum + i.price * i.quantity,
+      (acc, i) => acc + i.price * i.quantity,
     );
 
-    _orders.add(
-      AppOrder(
-        id: 'MRMR-${_nextId.toString().padLeft(3, '0')}',
-        items: orderItems,
-        total: total,
-        createdAt: DateTime.now(),
-        tab: tab,
-        hasSlip: hasSlip,
-      ),
-    );
-    _nextId++;
+    // Generate order ID — use Firestore doc-id when persisting, local id otherwise.
+    final localId = 'MRMR-${_nextLocalSeq.toString().padLeft(3, '0')}';
+    _nextLocalSeq++;
 
-    // Mark every item as ordered
+    final order = AppOrder(
+      id:        localId,
+      items:     orderItems,
+      total:     total,
+      createdAt: DateTime.now(),
+      tab:       tab,
+      hasSlip:   hasSlip,
+    );
+
+    _orders.add(order);
     for (final i in orderItems) {
       _orderedItemIds.add(i.itemId);
     }
     notifyListeners();
-  }
 
-  /// Mark an existing order as having a slip uploaded.
-  void markSlipUploaded(String orderId) {
-    final idx = _orders.indexWhere((o) => o.id == orderId);
-    if (idx != -1) {
-      _orders[idx].hasSlip = true;
-      notifyListeners();
+    // Persist to Firestore (best-effort — local state is source of truth in session).
+    if (uid != null) {
+      try {
+        await _ordersRef().doc(localId).set(order.toMap());
+      } catch (e) {
+        debugPrint('[OrdersProvider] placeOrders persist error: $e');
+      }
     }
   }
 
-  /// Cancel and remove an order, freeing its items.
-  void cancelOrder(String orderId) {
+  /// Mark that a payment slip has been uploaded for [orderId].
+  Future<void> markSlipUploaded(String orderId) async {
     final idx = _orders.indexWhere((o) => o.id == orderId);
     if (idx == -1) return;
-    final order = _orders[idx];
-    _orders.removeAt(idx);
-    // Free items — only if not still referenced by another active order
+    _orders[idx].hasSlip = true;
+    notifyListeners();
+    _updateField(orderId, {'hasSlip': true});
+  }
+
+  /// Cancel and remove an order.
+  Future<void> cancelOrder(String orderId) async {
+    final idx = _orders.indexWhere((o) => o.id == orderId);
+    if (idx == -1) return;
+
+    final order = _orders.removeAt(idx);
     final stillOrdered = <String>{
       for (final o in _orders)
         for (final i in o.items) i.itemId,
@@ -127,14 +264,30 @@ class OrdersProvider extends ChangeNotifier {
       }
     }
     notifyListeners();
+
+    try {
+      await _ordersRef().doc(orderId).delete();
+    } catch (e) {
+      debugPrint('[OrdersProvider] cancelOrder delete error: $e');
+    }
   }
 
-  /// Move order between tabs (e.g. toPay → toShip after payment verified).
-  void moveOrder(String id, OrderTab newTab) {
+  /// Move an order to a different status tab.
+  Future<void> moveOrder(String id, OrderTab newTab) async {
     final idx = _orders.indexWhere((o) => o.id == id);
-    if (idx != -1) {
-      _orders[idx].tab = newTab;
-      notifyListeners();
+    if (idx == -1) return;
+    _orders[idx].tab = newTab;
+    notifyListeners();
+    _updateField(id, {'tab': newTab.name});
+  }
+
+  // ── Internal helpers ────────────────────────────────────────────────────────
+
+  Future<void> _updateField(String orderId, Map<String, dynamic> data) async {
+    try {
+      await _ordersRef().doc(orderId).update(data);
+    } catch (e) {
+      debugPrint('[OrdersProvider] _updateField error ($orderId): $e');
     }
   }
 }

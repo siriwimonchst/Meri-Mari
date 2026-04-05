@@ -4,11 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_locale_provider.dart';
 import '../providers/orders_provider.dart';
+import '../l10n/app_strings.dart';
 import 'qr_payment_screen.dart';
+import 'order_detail_screen.dart';
+import '../core/app_theme.dart';
 
-const _kPurple = Color(0xFF7B5EA7);
-const _kPurpleLight = Color(0xFFAB9DC4);
-const _kPurpleFaint = Color(0xFFF4F0FA);
+const _kPurple      = kPurple;
+const _kPurpleLight = kPurpleLight;
+const _kPurpleFaint = kPurpleFaint;
 const _kText = Color(0xFF1A1A2E);
 
 class OrdersScreen extends StatefulWidget {
@@ -27,7 +30,7 @@ class _OrdersScreenState extends State<OrdersScreen>
   void initState() {
     super.initState();
     _tabController = TabController(
-      length: 4,
+      length: 5,
       vsync: this,
       initialIndex: widget.initialTab,
     );
@@ -71,19 +74,23 @@ class _OrdersScreenState extends State<OrdersScreen>
         ),
         bottom: TabBar(
           controller: _tabController,
+          isScrollable: true,
+          tabAlignment: TabAlignment.start,
           labelColor: _kPurple,
+          labelPadding: const EdgeInsets.symmetric(horizontal: 20),
           unselectedLabelColor: Colors.grey,
           labelStyle: const TextStyle(
             fontWeight: FontWeight.w800,
-            fontSize: 13,
+            fontSize: 14,
           ),
           unselectedLabelStyle: const TextStyle(
             fontWeight: FontWeight.w500,
-            fontSize: 13,
+            fontSize: 14,
           ),
           indicatorColor: _kPurple,
           indicatorWeight: 3,
           tabs: [
+            Tab(text: s.tabAll),
             Tab(text: s.tabToPay),
             Tab(text: s.tabToShip),
             Tab(text: s.tabToReceive),
@@ -94,6 +101,11 @@ class _OrdersScreenState extends State<OrdersScreen>
       body: TabBarView(
         controller: _tabController,
         children: [
+          _OrderList(
+            orders: ordersProvider.orders,
+            tab: null, // null means "All"
+            s: s,
+          ),
           _OrderList(
             orders: ordersProvider.ordersForTab(OrderTab.toPay),
             tab: OrderTab.toPay,
@@ -124,9 +136,9 @@ class _OrdersScreenState extends State<OrdersScreen>
 
 class _OrderList extends StatelessWidget {
   final List<AppOrder> orders;
-  final OrderTab tab;
-  final dynamic s;
-  const _OrderList({required this.orders, required this.tab, required this.s});
+  final OrderTab? tab;
+  final AppStrings s;
+  const _OrderList({required this.orders, this.tab, required this.s});
 
   @override
   Widget build(BuildContext context) {
@@ -150,7 +162,7 @@ class _OrderList extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              s.emptyOrders,
+              s.noOrders,
               style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
@@ -166,7 +178,9 @@ class _OrderList extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 20),
       itemCount: orders.length,
       itemBuilder: (ctx, i) {
-        if (tab == OrderTab.toPay) {
+        // Use Shopee-style card if the order itself is in 'To Pay' state,
+        // even if we are currently viewing the 'All' tab.
+        if (orders[i].tab == OrderTab.toPay) {
           return _ToPayCard(order: orders[i], s: s);
         }
         return _GenericOrderCard(order: orders[i], s: s);
@@ -179,7 +193,7 @@ class _OrderList extends StatelessWidget {
 
 class _ToPayCard extends StatefulWidget {
   final AppOrder order;
-  final dynamic s;
+  final AppStrings s;
   const _ToPayCard({required this.order, required this.s});
 
   @override
@@ -219,42 +233,63 @@ class _ToPayCardState extends State<_ToPayCard> {
     return '$h:$m:$s';
   }
 
-  void _confirmCancel(BuildContext ctx, String orderId, dynamic s) {
+  void _confirmCancel(BuildContext ctx, String orderId, AppStrings s) {
     showDialog(
       context: ctx,
       builder: (dlg) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         title: Text(
-          s.isThai ? 'ยกเลิกคำสั่งซื้อ?' : 'Cancel Order?',
-          style: const TextStyle(fontWeight: FontWeight.w800, color: _kText),
+          s.isThai ? 'ยกเลิกออเดอร์?' : 'Cancel Order?',
+          style: const TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w900,
+            color: _kText,
+          ),
         ),
         content: Text(
           s.isThai
               ? 'หากยกเลิก สินค้าจะกลับมาให้ผู้อื่นสามารถสั่งซื้อได้อีกครั้ง'
               : 'The item will be available for others to purchase again.',
-          style: const TextStyle(color: Colors.black54),
+          style: const TextStyle(
+            fontSize: 15,
+            color: Colors.black54,
+            height: 1.4,
+          ),
         ),
+        actionsPadding: const EdgeInsets.fromLTRB(12, 0, 24, 24),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dlg),
             child: Text(
-              s.isThai ? 'ยังอยู่' : 'Keep',
-              style: const TextStyle(color: Colors.grey),
+              s.cancelLabel,
+              style: const TextStyle(
+                color: Colors.grey,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
+          const SizedBox(width: 8),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
+              backgroundColor: kPurple,
               foregroundColor: Colors.white,
+              elevation: 4,
+              shadowColor: kPurple.withValues(alpha: 0.3),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(14),
               ),
             ),
             onPressed: () {
               Navigator.pop(dlg);
               context.read<OrdersProvider>().cancelOrder(orderId);
             },
-            child: Text(s.isThai ? 'ยืนยันยกเลิก' : 'Confirm Cancel'),
+            child: Text(
+              s.confirmCancelLabel,
+              style: const TextStyle(fontWeight: FontWeight.w800),
+            ),
           ),
         ],
       ),
@@ -267,22 +302,30 @@ class _ToPayCardState extends State<_ToPayCard> {
     final s = widget.s;
     final expired = _remaining == Duration.zero;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF7B5EA7).withValues(alpha: 0.07),
-            blurRadius: 14,
-            offset: const Offset(0, 5),
-          ),
-        ],
+    return InkWell(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => OrderDetailScreen(order: order),
+        ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF7B5EA7).withValues(alpha: 0.07),
+              blurRadius: 14,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
           // ── Shop header ───────────────────────────────────────────────
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
@@ -300,9 +343,9 @@ class _ToPayCardState extends State<_ToPayCard> {
                         color: _kPurple,
                         borderRadius: BorderRadius.circular(6),
                       ),
-                      child: const Text(
-                        'ร้านแนะนำ',
-                        style: TextStyle(
+                      child: Text(
+                        s.recommendedShop,
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
@@ -310,9 +353,9 @@ class _ToPayCardState extends State<_ToPayCard> {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    const Text(
-                      'Meri-Mari',
-                      style: TextStyle(
+                    Text(
+                      s.shopOfficialStore,
+                      style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w800,
                         color: _kText,
@@ -443,164 +486,180 @@ class _ToPayCardState extends State<_ToPayCard> {
 
           const Divider(height: 1, color: Color(0xFFF0EAF8)),
 
-          // ── Countdown timer row ───────────────────────────────────────
-          InkWell(
-            onTap: expired
-                ? null
-                : () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => QrPaymentScreen(
-                          total: order.total,
-                          selectedItems: const [],
-                          orderId: order.id,
-                        ),
-                      ),
-                    );
-                  },
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: expired
-                        ? Text(
-                            s.isThai
-                                ? 'หมดเวลาชำระเงิน — ออเดอร์ถูกยกเลิก'
-                                : 'Payment expired — order cancelled',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.red.shade400,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          )
-                        : RichText(
-                            text: TextSpan(
-                              style: const TextStyle(fontSize: 13),
-                              children: [
-                                TextSpan(
-                                  text: s.isThai ? 'ชำระภายใน ' : 'Pay within ',
-                                  style: TextStyle(color: Colors.grey.shade600),
-                                ),
-                                TextSpan(
-                                  text: _fmt(_remaining),
-                                  style: const TextStyle(
-                                    color: _kPurple,
-                                    fontWeight: FontWeight.w900,
-                                    fontSize: 15,
-                                  ),
-                                ),
-                                TextSpan(
-                                  text: s.isThai
-                                      ? ' ผ่าน QR พร้อมเพย์'
-                                      : ' via QR PromptPay',
-                                  style: TextStyle(color: Colors.grey.shade600),
-                                ),
-                              ],
-                            ),
-                          ),
-                  ),
-                  if (!expired)
-                    const Icon(
-                      Icons.chevron_right_rounded,
-                      color: _kPurpleLight,
-                    ),
-                ],
-              ),
-            ),
-          ),
-
-          const Divider(height: 1, color: Color(0xFFF0EAF8)),
-
-          // ── Action buttons ────────────────────────────────────────────
-          if (!expired)
+          // ── Slip verification banner (shown when slip uploaded) ───────
+          if (order.hasSlip)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-              child: Row(
-                children: order.hasSlip
-                    ? [
-                        Expanded(
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            decoration: BoxDecoration(
-                              color: _kPurpleFaint,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            alignment: Alignment.center,
-                            child: Text(
-                              s.isThai
-                                  ? 'กำลังตรวจสอบการชำระเงิน'
-                                  : 'Verifying Payment',
-                              style: const TextStyle(
-                                color: _kPurple,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ]
-                    : [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () =>
-                                _confirmCancel(context, order.id, s),
-                            style: OutlinedButton.styleFrom(
-                              side: const BorderSide(color: Color(0xFFEF9A9A)),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                            ),
-                            child: Text(
-                              s.isThai ? 'ยกเลิกคำสั่งซื้อ' : 'Cancel Order',
-                              style: const TextStyle(
-                                fontSize: 13,
-                                color: Colors.red,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => QrPaymentScreen(
-                                  total: order.total,
-                                  selectedItems: const [],
-                                  orderId: order.id,
-                                ),
-                              ),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: _kPurple,
-                              foregroundColor: Colors.white,
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                            ),
-                            child: Text(
-                              s.isThai ? 'ชำระเงิน' : 'Pay now',
-                              style: const TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: _kPurpleFaint,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: _kPurpleLight.withValues(alpha: 0.2)),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  s.waitingVerification, // "รอตรวจสอบสลิปชำระเงิน"
+                  style: const TextStyle(
+                    color: _kPurple,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 13,
+                  ),
+                ),
               ),
             ),
+
+          // ── Countdown timer + action buttons (hidden when slip uploaded)
+          if (!order.hasSlip) ...[
+            // Countdown timer row
+            InkWell(
+              onTap: expired
+                  ? null
+                  : () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => QrPaymentScreen(
+                            total: order.total,
+                            selectedItems: const [],
+                            orderId: order.id,
+                          ),
+                        ),
+                      );
+                    },
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: _kPurpleFaint,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: expired
+                            ? Text(
+                                s.isThai
+                                    ? 'หมดเวลาชำระเงิน — ออเดอร์ถูกยกเลิก'
+                                    : 'Payment expired — order cancelled',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.red.shade400,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              )
+                            : RichText(
+                                text: TextSpan(
+                                  style: const TextStyle(fontSize: 13),
+                                  children: [
+                                    TextSpan(
+                                      text: s.payWithin + ' ',
+                                      style: const TextStyle(color: Colors.black54),
+                                    ),
+                                    TextSpan(
+                                      text: _fmt(_remaining),
+                                      style: const TextStyle(
+                                        color: _kPurple,
+                                        fontWeight: FontWeight.w900,
+                                        fontSize: 15,
+                                      ),
+                                    ),
+                                    TextSpan(
+                                      text: s.isThai
+                                          ? ' ผ่าน QR พร้อมเพย์'
+                                          : ' via QR PromptPay',
+                                      style: const TextStyle(color: Colors.black54),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                      ),
+                      if (!expired)
+                        const Icon(
+                          Icons.chevron_right_rounded,
+                          color: _kPurpleLight,
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            const Divider(height: 1, color: Color(0xFFF0EAF8)),
+
+            // Action buttons
+            if (!expired)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                child: Row(
+                  children: [
+                    const Spacer(),
+                    SizedBox(
+                      width: 140,
+                      child: OutlinedButton(
+                        onPressed: () => _confirmCancel(context, order.id, s),
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: Colors.grey.shade300),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        child: Text(
+                          s.cancelOrderLabel,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey.shade700,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    SizedBox(
+                      width: 120,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => QrPaymentScreen(
+                                total: order.total,
+                                selectedItems: const [],
+                                orderId: order.id,
+                              ),
+                            ),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _kPurple,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        child: Text(
+                          s.payNowLabel,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _imgPlaceholder() {
     return Container(
@@ -623,10 +682,10 @@ class _ToPayCardState extends State<_ToPayCard> {
 
 class _GenericOrderCard extends StatelessWidget {
   final AppOrder order;
-  final dynamic s;
+  final AppStrings s;
   const _GenericOrderCard({required this.order, required this.s});
 
-  String _statusLabel(OrderTab tab, dynamic s) {
+  String _statusLabel(OrderTab tab, AppStrings s) {
     switch (tab) {
       case OrderTab.toPay:
         return s.isThai ? 'รอผู้ซื้อชำระเงิน' : 'Pending Payment';
@@ -635,7 +694,7 @@ class _GenericOrderCard extends StatelessWidget {
       case OrderTab.toReceive:
         return s.isThai ? 'รอรับสินค้า' : 'To Receive';
       case OrderTab.toRate:
-        return s.isThai ? 'รอให้คะแนน' : 'To Rate';
+        return s.isThai ? 'สำเร็จ' : 'Success';
     }
   }
 
@@ -657,143 +716,147 @@ class _GenericOrderCard extends StatelessWidget {
     final statusColor = _statusColor(order.tab);
     final firstItem = order.items.isNotEmpty ? order.items.first : null;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF7B5EA7).withValues(alpha: 0.07),
-            blurRadius: 14,
-            offset: const Offset(0, 5),
-          ),
-        ],
+    return InkWell(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => OrderDetailScreen(order: order),
+        ),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'รหัส: ${order.id}',
-                  style: TextStyle(
-                    color: Colors.grey.shade500,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 5,
-                  ),
-                  decoration: BoxDecoration(
-                    color: statusColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    _statusLabel(order.tab, s),
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF7B5EA7).withValues(alpha: 0.07),
+              blurRadius: 14,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'รหัส: ${order.id}',
                     style: TextStyle(
-                      color: statusColor,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 12,
+                      color: Colors.grey.shade500,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                ),
-              ],
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              child: Divider(
-                color: Colors.grey.shade100,
-                height: 1,
-                thickness: 1.5,
-              ),
-            ),
-            if (firstItem != null)
-              Row(
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(14),
-                    child: firstItem.imageUrl.isNotEmpty
-                        ? Image.network(
-                            firstItem.imageUrl,
-                            width: 62,
-                            height: 62,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => _placeholder(),
-                          )
-                        : _placeholder(),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          firstItem.name,
-                          style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 15,
-                            color: Colors.grey.shade800,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '฿${order.total.toStringAsFixed(0)}',
-                          style: const TextStyle(
-                            color: _kPurple,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 15,
-                          ),
-                        ),
-                      ],
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: statusColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      _statusLabel(order.tab, s),
+                      style: TextStyle(
+                        color: statusColor,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 12,
+                      ),
                     ),
                   ),
                 ],
               ),
-            const SizedBox(height: 14),
-            SizedBox(
-              width: double.infinity,
-              height: 44,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _kPurpleFaint,
-                  foregroundColor: _kPurple,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Divider(
+                  color: Colors.grey.shade100,
+                  height: 1,
+                  thickness: 1.5,
                 ),
-                onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('ออเดอร์ ${order.id}'),
-                    backgroundColor: _kPurple,
-                    behavior: SnackBarBehavior.floating,
+              ),
+              if (firstItem != null)
+                Row(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(14),
+                      child: firstItem.imageUrl.isNotEmpty
+                          ? Image.network(
+                              firstItem.imageUrl,
+                              width: 62,
+                              height: 62,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => _placeholder(),
+                            )
+                          : _placeholder(),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            firstItem.name,
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 15,
+                              color: Colors.grey.shade800,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '฿${order.total.toStringAsFixed(0)}',
+                            style: const TextStyle(
+                              color: _kPurple,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 15,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              const SizedBox(height: 14),
+              SizedBox(
+                width: double.infinity,
+                height: 44,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _kPurpleFaint,
+                    foregroundColor: _kPurple,
+                    elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    margin: const EdgeInsets.all(16),
                   ),
-                ),
-                child: Text(
-                  s.isThai
-                      ? 'ดูรายละเอียด / จัดการคำสั่งซื้อ'
-                      : 'View / Manage Order',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 14,
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => OrderDetailScreen(order: order),
+                    ),
+                  ),
+                  child: Text(
+                    s.isThai
+                        ? 'ดูรายละเอียด / จัดการคำสั่งซื้อ'
+                        : 'View / Manage Order',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

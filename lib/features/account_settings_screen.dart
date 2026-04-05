@@ -1,16 +1,14 @@
-// lib/features/account_settings_screen.dart
-import 'dart:io';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_locale_provider.dart';
+import '../core/app_theme.dart';
 
-const _kPurple = Color(0xFF7B5EA7);
-const _kText = Color(0xFF1A1A2E);
-const _kSubText = Color(0xFF9E9E9E);
+const _kPurple = kPurple;
+const _kText = kText;
 
 class AccountSettingsScreen extends StatefulWidget {
   const AccountSettingsScreen({super.key});
@@ -31,6 +29,19 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     _user = FirebaseAuth.instance.currentUser;
     if (_user != null) {
       _nameController.text = _user?.displayName ?? '';
+      // Initial fetch to set name controller
+      FirebaseFirestore.instance
+          .collection('users')
+          .doc(_user!.uid)
+          .get()
+          .then((doc) {
+        if (doc.exists && mounted) {
+          final display = doc.data()?['displayName'];
+          if (display != null) {
+            _nameController.text = display;
+          }
+        }
+      });
     }
   }
 
@@ -42,103 +53,78 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
 
   Future<void> _updateProfile() async {
     if (!_formKey.currentState!.validate()) return;
-
     if (_user == null) return;
 
     setState(() => _isLoading = true);
     try {
-      await _user!.updateDisplayName(_nameController.text.trim());
-      // Reload the user to ensure auth state reflects changes immediately
+      final newName = _nameController.text.trim();
+      await _user!.updateDisplayName(newName);
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(_user!.uid)
+          .set({'displayName': newName}, SetOptions(merge: true));
+
       await _user!.reload();
       if (!mounted) return;
 
-      final scaffoldMessenger = ScaffoldMessenger.of(context);
       final s = context.read<AppLocaleProvider>().strings;
-
-      scaffoldMessenger.showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            s.isThai ? 'บันทึกข้อมูลสำเร็จ' : 'Profile updated successfully',
-          ),
+          content: Text(s.isThai ? 'บันทึกข้อมูลสำเร็จ' : 'Profile updated successfully'),
           backgroundColor: Colors.green,
         ),
       );
-
-      Navigator.pop(context); // Go back once done
+      Navigator.pop(context);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error updating profile: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    } finally {
       if (mounted) {
-        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
       }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   Future<void> _uploadPicture() async {
     if (_user == null) return;
-
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(
       source: ImageSource.gallery,
-      maxWidth: 800,
-      maxHeight: 800,
-      imageQuality: 85,
+      maxWidth: 400,
+      maxHeight: 400,
+      imageQuality: 50,
     );
-
     if (pickedFile == null) return;
 
     setState(() => _isLoading = true);
     try {
-      final storageRef = FirebaseStorage.instance.ref().child(
-        'users/${_user!.uid}/profile_picture.jpg',
-      );
+      final bytes = await pickedFile.readAsBytes();
+      final dataUrl = 'data:image/jpeg;base64,${base64Encode(bytes)}';
 
-      if (kIsWeb) {
-        final bytes = await pickedFile.readAsBytes();
-        await storageRef.putData(
-          bytes,
-          SettableMetadata(contentType: 'image/jpeg'),
-        );
-      } else {
-        await storageRef.putFile(
-          File(pickedFile.path),
-          SettableMetadata(contentType: 'image/jpeg'),
-        );
-      }
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(_user!.uid)
+          .set({'photoUrl': dataUrl}, SetOptions(merge: true));
 
-      final downloadUrl = await storageRef.getDownloadURL();
-      await _user!.updatePhotoURL(downloadUrl);
+      try { await _user!.updatePhotoURL(dataUrl); } catch (_) {}
       await _user!.reload();
 
-      if (!mounted) return;
-      setState(() {
-        _user = FirebaseAuth.instance.currentUser;
-      });
-
-      final s = context.read<AppLocaleProvider>().strings;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            s.isThai
-                ? 'อัปโหลดรูปภาพสำเร็จ'
-                : 'Profile picture uploaded successfully',
+      if (mounted) {
+        final s = context.read<AppLocaleProvider>().strings;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(s.isThai ? 'อัปโหลดสำเร็จ' : 'Upload successful'),
+            backgroundColor: Colors.green,
           ),
-          backgroundColor: Colors.green,
-        ),
-      );
+        );
+      }
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error uploading picture: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -146,28 +132,20 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
 
   Future<void> _deletePicture() async {
     if (_user == null) return;
-
     setState(() => _isLoading = true);
     try {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(_user!.uid)
+          .update({'photoUrl': FieldValue.delete()});
       await _user!.updatePhotoURL(null);
       await _user!.reload();
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Profile picture removed'),
-          backgroundColor: Colors.green,
-        ),
-      );
-      setState(() {
-        _user = FirebaseAuth.instance.currentUser;
-      });
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error removing picture: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -175,230 +153,119 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_user == null) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('Account')),
-        body: const Center(child: Text('Not logged in')),
-      );
-    }
-
+    if (_user == null) return const Scaffold(body: Center(child: Text('Please Log In')));
     final s = context.watch<AppLocaleProvider>().strings;
-    final photoUrl = _user?.photoURL;
-    final email = _user?.email ?? '-';
-    final currentDisplayName = _user?.displayName ?? '';
-    final avatarLetter = currentDisplayName.isNotEmpty
-        ? currentDisplayName[0].toUpperCase()
-        : (email.isNotEmpty ? email[0].toUpperCase() : '?');
 
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        surfaceTintColor: Colors.transparent,
-        leadingWidth: 40,
-        leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_ios_new_rounded,
-            color: _kPurple,
-            size: 20,
+    return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+      stream: FirebaseFirestore.instance.collection('users').doc(_user!.uid).snapshots(),
+      builder: (context, snapshot) {
+        final data = snapshot.data?.data();
+        final photoUrl = data?['photoUrl'] ?? _user?.photoURL;
+        final displayName = data?['displayName'] ?? _user?.displayName ?? '';
+        final avatarLetter = displayName.isNotEmpty ? displayName[0].toUpperCase() : '?';
+
+        return Scaffold(
+          backgroundColor: Colors.white,
+          appBar: AppBar(
+            backgroundColor: Colors.white,
+            elevation: 0,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back_ios_new_rounded, color: _kPurple),
+              onPressed: () => Navigator.pop(context),
+            ),
+            title: Text(s.editProfile, style: const TextStyle(fontWeight: FontWeight.w800, color: _kText)),
           ),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          s.account,
-          style: const TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w800,
-            color: _kText,
-          ),
-        ),
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: _kPurple))
-          : SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  children: [
-                    // Area 1: Avatar / Photo Management
-                    Center(
-                      child: Column(
-                        children: [
-                          Container(
-                            width: 100,
-                            height: 100,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: const Color(0xFFEDE7F6),
-                              border: Border.all(
-                                color: const Color(0xFFD4C8E8),
-                                width: 2,
-                              ),
-                              image: photoUrl != null
-                                  ? DecorationImage(
-                                      image: NetworkImage(photoUrl),
-                                      fit: BoxFit.cover,
-                                    )
-                                  : null,
-                            ),
-                            child: photoUrl == null
-                                ? Center(
-                                    child: Text(
-                                      avatarLetter,
-                                      style: const TextStyle(
-                                        fontSize: 40,
-                                        fontWeight: FontWeight.w800,
-                                        color: _kPurple,
-                                      ),
-                                    ),
-                                  )
-                                : null,
-                          ),
-                          const SizedBox(height: 16),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
+          body: _isLoading
+              ? const Center(child: CircularProgressIndicator(color: _kPurple))
+              : SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      children: [
+                        Center(
+                          child: Column(
                             children: [
-                              OutlinedButton.icon(
-                                onPressed: _uploadPicture,
-                                icon: const Icon(
-                                  Icons.upload_rounded,
-                                  size: 18,
+                              Container(
+                                width: 100,
+                                height: 100,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: const Color(0xFFEDE7F6),
+                                  border: Border.all(color: const Color(0xFFD4C8E8), width: 2),
+                                  image: photoUrl != null
+                                      ? DecorationImage(
+                                          image: photoUrl.startsWith('data:image')
+                                              ? MemoryImage(base64Decode(photoUrl.split(',')[1])) as ImageProvider
+                                              : NetworkImage(photoUrl),
+                                          fit: BoxFit.cover,
+                                        )
+                                      : null,
                                 ),
-                                label: Text(s.isThai ? 'อัปโหลดรูป' : 'Upload'),
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: _kPurple,
-                                  side: const BorderSide(color: _kPurple),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
+                                child: photoUrl == null
+                                    ? Center(child: Text(avatarLetter, style: const TextStyle(fontSize: 40, color: _kPurple, fontWeight: FontWeight.w800)))
+                                    : null,
                               ),
-                              const SizedBox(width: 12),
-                              if (photoUrl != null)
-                                OutlinedButton.icon(
-                                  onPressed: _deletePicture,
-                                  icon: const Icon(
-                                    Icons.delete_outline_rounded,
-                                    size: 18,
+                              const SizedBox(height: 16),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  OutlinedButton.icon(
+                                    onPressed: _uploadPicture,
+                                    icon: const Icon(Icons.upload_rounded, size: 18),
+                                    label: Text(s.isThai ? 'อัปโหลด' : 'Upload'),
+                                    style: OutlinedButton.styleFrom(foregroundColor: _kPurple, side: const BorderSide(color: _kPurple)),
                                   ),
-                                  label: Text(s.isThai ? 'ลบรูป' : 'Remove'),
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor: Colors.red.shade400,
-                                    side: BorderSide(
-                                      color: Colors.red.shade200,
+                                  if (photoUrl != null) ...[
+                                    const SizedBox(width: 12),
+                                    OutlinedButton.icon(
+                                      onPressed: _deletePicture,
+                                      icon: const Icon(Icons.delete_outline_rounded, size: 18),
+                                      label: Text(s.isThai ? 'ลบ' : 'Delete'),
+                                      style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
                                     ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                  ),
-                                ),
+                                  ],
+                                ],
+                              ),
                             ],
                           ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 48),
-
-                    // Area 2: Display Name Editing
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          s.isThai ? 'ชื่อผู้ใช้' : 'Display Name',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: _kSubText,
-                          ),
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 40),
                         TextFormField(
                           controller: _nameController,
                           decoration: InputDecoration(
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(
-                                color: _kPurple,
-                                width: 2,
-                              ),
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 16,
-                            ),
-                          ),
-                          validator: (value) {
-                            if (value == null || value.trim().isEmpty) {
-                              return s.isThai
-                                  ? 'กรุณากรอกชื่อผู้ใช้'
-                                  : 'Please enter a name';
-                            }
-                            return null;
-                          },
-                        ),
-
-                        const SizedBox(height: 24),
-
-                        Text(
-                          s.isThai
-                              ? 'อีเมล (ไม่สามารถแก้ไขได้)'
-                              : 'Email (Cannot be modified)',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: _kSubText,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        TextFormField(
-                          initialValue: email,
-                          enabled: false,
-                          decoration: InputDecoration(
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            fillColor: Colors.grey.shade100,
+                            labelText: s.displayName,
+                            labelStyle: const TextStyle(color: kPurpleLight, fontSize: 13),
                             filled: true,
+                            fillColor: kPurpleFaint,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPurpleBorder)),
+                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPurpleBorder)),
+                            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPurple, width: 2)),
+                          ),
+                          validator: (v) => (v == null || v.isEmpty) ? s.fieldRequired : null,
+                        ),
+                        const SizedBox(height: 32),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: _updateProfile,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: _kPurple,
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            ),
+                            child: Text(s.saveChanges, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
                           ),
                         ),
                       ],
                     ),
-
-                    const SizedBox(height: 48),
-
-                    // Area 3: Save button
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _updateProfile,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: _kPurple,
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: Text(
-                          s.isThai ? 'บันทึกการเปลี่ยนแปลง' : 'Save Changes',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
+        );
+      },
     );
   }
 }

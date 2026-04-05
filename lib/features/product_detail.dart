@@ -7,13 +7,14 @@ import '../providers/favorites_provider.dart';
 import '../providers/app_locale_provider.dart';
 import 'checkout_screen.dart'; // Changed from orders.dart
 import '../providers/orders_provider.dart';
+import '../core/app_theme.dart';
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
-const _kPurple = Color(0xFF7B5EA7);
-const _kPurpleFaint = Color(0xFFF4F0FA);
-const _kPurpleBorder = Color(0xFFDDD6E8);
-const _kText = Color(0xFF1A1A2E);
-const _kSubText = Color(0xFFB0A8C4);
+const _kPurple = kPurple;
+const _kPurpleFaint = kPurpleFaint;
+const _kPurpleBorder = kPurpleBorder;
+const _kText = kText;
+const _kSubText = kSubText;
 
 class ProductDetailScreen extends StatefulWidget {
   final ItemModel item;
@@ -56,22 +57,22 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
   }
 
   void _addToCart() {
-    context.read<CartProvider>().addItem(widget.item);
+    final added = context.read<CartProvider>().addItem(widget.item);
     final s = context.read<AppLocaleProvider>().strings;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
           children: [
-            const Icon(
-              Icons.check_circle_outline,
+            Icon(
+              added ? Icons.check_circle_outline : Icons.info_outline_rounded,
               color: Colors.white,
               size: 18,
             ),
             const SizedBox(width: 10),
-            Text(s.addedToCart),
+            Text(added ? s.addedToCart : s.alreadyInCart),
           ],
         ),
-        backgroundColor: _kPurple,
+        backgroundColor: added ? _kPurple : kWarningOrange,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.all(16),
@@ -226,7 +227,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                   if (isOrdered)
                     Positioned.fill(
                       child: Container(
-                        color: const Color(0xFF7B5EA7).withValues(alpha: 0.70),
+                        color: kPurple.withValues(alpha: 0.70),
                         child: Center(
                           child: Column(
                             mainAxisSize: MainAxisSize.min,

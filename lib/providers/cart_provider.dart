@@ -96,16 +96,13 @@ class CartProvider extends ChangeNotifier {
 
   // ── Mutations ────────────────────────────────────────────────────────────
 
-  void addItem(ItemModel item) {
-    final idx = _items.indexWhere((ci) => ci.item.id == item.id);
-    if (idx >= 0) {
-      _items[idx].quantity++;
-    } else {
-      _items.add(CartItem(item: item));
-      _selectedIds.add(item.id); // auto-select new items
-    }
+  bool addItem(ItemModel item) {
+    if (containsItem(item.id)) return false;
+    _items.add(CartItem(item: item));
+    _selectedIds.add(item.id); // auto-select new items
     notifyListeners();
     _save();
+    return true;
   }
 
   void toggleSelected(String id) {
@@ -127,28 +124,6 @@ class CartProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void increaseQty(String id) {
-    final idx = _items.indexWhere((ci) => ci.item.id == id);
-    if (idx >= 0) {
-      _items[idx].quantity++;
-      notifyListeners();
-      _save();
-    }
-  }
-
-  void decreaseQty(String id) {
-    final idx = _items.indexWhere((ci) => ci.item.id == id);
-    if (idx >= 0) {
-      if (_items[idx].quantity <= 1) {
-        _selectedIds.remove(_items[idx].item.id);
-        _items.removeAt(idx);
-      } else {
-        _items[idx].quantity--;
-      }
-      notifyListeners();
-      _save();
-    }
-  }
 
   void removeItem(String id) {
     _selectedIds.remove(id);

@@ -4,13 +4,15 @@ import 'package:provider/provider.dart';
 import '../providers/cart_provider.dart';
 import '../providers/app_locale_provider.dart';
 import '../providers/address_provider.dart';
+import '../core/app_theme.dart';
 import 'qr_payment_screen.dart';
 
-const _kPurple = Color(0xFF7B5EA7);
-const _kPurpleLight = Color(0xFFAB9DC4);
-const _kPurpleFaint = Color(0xFFF4F0FA);
-const _kPurpleBorder = Color(0xFFDDD6E8);
-const _kText = Color(0xFF1A1A2E);
+// Design token aliases — source of truth is lib/core/app_theme.dart
+const _kPurple       = kPurple;
+const _kPurpleLight  = kPurpleLight;
+const _kPurpleFaint  = kPurpleFaint;
+const _kPurpleBorder = kPurpleBorder;
+const _kText         = kText;
 
 class CheckoutScreen extends StatelessWidget {
   final List<CartItem>? directItems;
@@ -195,14 +197,6 @@ class CheckoutScreen extends StatelessWidget {
                                   ),
                                 ),
                               ],
-                            ),
-                          ),
-                          Text(
-                            'x${ci.quantity}',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.grey.shade500,
                             ),
                           ),
                         ],

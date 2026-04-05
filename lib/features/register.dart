@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import '../providers/favorites_provider.dart';
+import '../providers/app_locale_provider.dart';
+import '../core/app_theme.dart';
 import 'auth_widgets.dart';
 import 'main_screen.dart';
 import 'auth.dart';
@@ -33,11 +35,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final pass = _passCtrl.text.trim();
 
     if (name.isEmpty || email.isEmpty || pass.isEmpty) {
-      _showError('กรุณากรอกข้อมูลให้ครบถ้วน');
+      final s = context.read<AppLocaleProvider>().strings;
+      _showError(s.isThai ? 'กรุณากรอกข้อมูลให้ครบถ้วน' : 'Please fill in all fields');
       return;
     }
     if (pass.length < 6) {
-      _showError('รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร');
+      final s = context.read<AppLocaleProvider>().strings;
+      _showError(s.isThai ? 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร' : 'Password must be at least 6 characters');
       return;
     }
 
@@ -103,7 +107,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         children: [
           // ── Background Gradient ───────────────────────────────────────
           Container(
-            height: screenHeight * 0.45,
+      height: screenHeight * kAuthBgHeightRatio,
             decoration: const BoxDecoration(
               gradient: LinearGradient(
                 colors: [Color(0xFFC5B4E3), Color(0xFF8B73AF)],
@@ -115,45 +119,45 @@ class _RegisterScreenState extends State<RegisterScreen> {
             child: Stack(
               children: [
                 Positioned(
-                  top: -150,
-                  right: -150,
+                  top: kDecorOuterOffset,
+                  right: kDecorOuterOffset,
                   child: Container(
-                    width: 500,
-                    height: 500,
+                    width: kDecorOuterSize,
+                    height: kDecorOuterSize,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.15),
+                        color: Colors.white.withValues(alpha: kDecorBorderAlpha),
                         width: 1,
                       ),
                     ),
                   ),
                 ),
                 Positioned(
-                  top: -100,
-                  right: -100,
+                  top: kDecorMidOffset,
+                  right: kDecorMidOffset,
                   child: Container(
-                    width: 400,
-                    height: 400,
+                    width: kDecorMidSize,
+                    height: kDecorMidSize,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.15),
+                        color: Colors.white.withValues(alpha: kDecorBorderAlpha),
                         width: 1,
                       ),
                     ),
                   ),
                 ),
                 Positioned(
-                  top: -50,
-                  right: -50,
+                  top: kDecorInnerOffset,
+                  right: kDecorInnerOffset,
                   child: Container(
-                    width: 300,
-                    height: 300,
+                    width: kDecorInnerSize,
+                    height: kDecorInnerSize,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.15),
+                        color: Colors.white.withValues(alpha: kDecorBorderAlpha),
                         width: 1,
                       ),
                     ),
@@ -173,20 +177,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     Navigator.pop(context);
                   }
                 },
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.arrow_back_ios_new_rounded,
-                      size: 18,
-                      color: Color(0xFF1A1A2E),
-                    ),
-                    SizedBox(width: 8),
-                    Text(
-                      'Back',
-                      style: TextStyle(fontSize: 15, color: Color(0xFF1A1A2E)),
-                    ),
-                  ],
+                child: Builder(
+                  builder: (context) {
+                    final s = context.watch<AppLocaleProvider>().strings;
+                    return Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.arrow_back_ios_new_rounded,
+                          size: 18,
+                          color: Color(0xFF1A1A2E),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          s.isThai ? 'กลับ' : 'Back',
+                          style: const TextStyle(fontSize: 15, color: Color(0xFF1A1A2E)),
+                        ),
+                      ],
+                    );
+                  },
                 ),
               ),
             ),
@@ -196,7 +205,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           Align(
             alignment: Alignment.bottomCenter,
             child: Container(
-              height: screenHeight * 0.75,
+              height: screenHeight * kAuthCardHeightRatio,
               padding: const EdgeInsets.fromLTRB(28, 48, 28, 28),
               decoration: const BoxDecoration(
                 color: Colors.white,
@@ -205,14 +214,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   topRight: Radius.circular(32),
                 ),
               ),
-              child: SingleChildScrollView(
+              child: Builder(
+                builder: (context) {
+                  final s = context.watch<AppLocaleProvider>().strings;
+                  return SingleChildScrollView(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     // Title
-                    const Text(
-                      'Create Your Account',
-                      style: TextStyle(
+                    Text(
+                      s.isThai ? 'สร้างบัญชีของคุณ' : 'Create Your Account',
+                      style: const TextStyle(
                         fontSize: 32,
                         fontWeight: FontWeight.w800,
                         color: Color(0xFF1A1A2E),
@@ -221,21 +233,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     const SizedBox(height: 12),
 
                     // Catchy Phrase
-                    const Text(
-                      'Join the Meri Mari community today\nand discover what you love!',
+                    Text(
+                      s.isThai
+                          ? 'เข้าร่วมชุมชน Meri Mari วันนี้\nและค้นพบสิ่งที่คุณชื่นชอบ!'
+                          : 'Join the Meri Mari community today\nand discover what you love!',
                       textAlign: TextAlign.center,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 14,
                         color: Color(0xFF757575),
                         height: 1.4,
                       ),
                     ),
-                    const SizedBox(height: 48),
+                    const SizedBox(height: 32),
 
                     // Name
                     AuthInputField(
                       controller: _nameCtrl,
-                      hint: 'Enter full name',
+                      hint: s.isThai ? 'กรอกชื่อ-นามสกุล' : 'Enter full name',
                       icon: Icons.person_outline_rounded,
                     ),
                     const SizedBox(height: 16),
@@ -243,7 +257,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     // Email
                     AuthInputField(
                       controller: _emailCtrl,
-                      hint: 'Enter email',
+                      hint: s.isThai ? 'กรอกอีเมล' : 'Enter email',
                       icon: Icons.email_outlined,
                       keyboardType: TextInputType.emailAddress,
                     ),
@@ -252,7 +266,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     // Password
                     AuthInputField(
                       controller: _passCtrl,
-                      hint: 'Enter password',
+                      hint: s.isThai ? 'กรอกรหัสผ่าน' : 'Enter password',
                       icon: Icons.lock_outline,
                       obscure: _obscure,
                       suffix: IconButton(
@@ -267,33 +281,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                       onSubmitted: (_) => _register(),
                     ),
-                    const SizedBox(height: 16),
-
-                    // Forgot Password
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: GestureDetector(
-                        onTap: () {},
-                        child: const Text(
-                          'Forgot password?',
-                          style: TextStyle(
-                            color: Color(0xFF7B5EA7),
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 48),
+                    const SizedBox(height: 32),
 
                     // Sign Up Button (Gradient)
                     AuthGradientButton(
-                      label: 'Get Started',
+                      label: s.isThai ? 'เริ่มต้นใช้งาน' : 'Get Started',
                       loading: _loading,
                       onPressed: _register,
                     ),
 
-                    const SizedBox(height: 48),
+                    const SizedBox(height: 24),
 
                     // Sign in link
                     GestureDetector(
@@ -302,16 +299,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         MaterialPageRoute(builder: (_) => const AuthScreen()),
                       ),
                       child: RichText(
-                        text: const TextSpan(
-                          text: 'Already have an account? ',
-                          style: TextStyle(
+                        text: TextSpan(
+                          text: s.alreadyHaveAccount,
+                          style: const TextStyle(
                             color: Color(0xFF757575),
                             fontSize: 14,
                           ),
                           children: [
                             TextSpan(
-                              text: 'Log In',
-                              style: TextStyle(
+                              text: s.login,
+                              style: const TextStyle(
                                 color: Color(0xFF7B5EA7),
                                 fontWeight: FontWeight.w700,
                               ),
@@ -320,9 +317,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 16),
                   ],
                 ),
+                  );
+                },
               ),
             ),
           ),

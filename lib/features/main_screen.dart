@@ -70,8 +70,8 @@ class _BottomNav extends StatelessWidget {
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).padding.bottom + 6,
         top: 10,
-        left: 12,
-        right: 12,
+        left: 8,
+        right: 8,
       ),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -84,46 +84,54 @@ class _BottomNav extends StatelessWidget {
         ],
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        // Use Expanded children instead of spaceAround so text never overflows
         children: List.generate(items.length, (i) {
           final selected = i == currentIndex;
           final color = selected ? _purple : Colors.grey.shade400;
-          return GestureDetector(
-            onTap: () => onTap(i),
-            behavior: HitTestBehavior.opaque,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 250),
-              curve: Curves.easeOutCubic,
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-              decoration: BoxDecoration(
-                color: selected
-                    ? const Color(0xFFAB9DC4).withValues(alpha: 0.12)
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(24),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 200),
-                    child: Icon(
-                      items[i].icon,
-                      key: ValueKey(selected),
-                      color: color,
-                      size: selected ? 27 : 24,
+          return Expanded(
+            child: GestureDetector(
+              onTap: () => onTap(i),
+              behavior: HitTestBehavior.opaque,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeOutCubic,
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                decoration: BoxDecoration(
+                  color: selected
+                      ? const Color(0xFFAB9DC4).withValues(alpha: 0.12)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 200),
+                      child: Icon(
+                        items[i].icon,
+                        key: ValueKey(selected),
+                        color: color,
+                        size: selected ? 26 : 23,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 3),
-                  AnimatedDefaultTextStyle(
-                    duration: const Duration(milliseconds: 200),
-                    style: TextStyle(
-                      color: color,
-                      fontSize: 11,
-                      fontWeight: selected ? FontWeight.w800 : FontWeight.w500,
+                    const SizedBox(height: 3),
+                    AnimatedDefaultTextStyle(
+                      duration: const Duration(milliseconds: 200),
+                      style: TextStyle(
+                        color: color,
+                        fontSize: 10,
+                        fontWeight:
+                            selected ? FontWeight.w800 : FontWeight.w500,
+                      ),
+                      child: Text(
+                        items[i].label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                      ),
                     ),
-                    child: Text(items[i].label),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           );

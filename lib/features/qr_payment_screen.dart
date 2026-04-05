@@ -1,18 +1,22 @@
-// lib/features/qr_payment_screen.dart
-import 'dart:io';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-import 'package:file_picker/file_picker.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import 'dart:io' as io;
 import '../providers/app_locale_provider.dart';
 import '../providers/cart_provider.dart';
+import '../core/app_theme.dart';
+import '../core/slip_upload_service.dart';
 import 'orders.dart';
 import '../providers/orders_provider.dart';
 
-const _kPurple = Color(0xFF7B5EA7);
-const _kPurpleLight = Color(0xFFAB9DC4);
-const _kPurpleFaint = Color(0xFFF4F0FA);
-const _kPurpleBorder = Color(0xFFDDD6E8);
-const _kText = Color(0xFF1A1A2E);
+// Design token aliases — source of truth is lib/core/app_theme.dart
+const _kPurple       = kPurple;
+const _kPurpleLight  = kPurpleLight;
+const _kPurpleFaint  = kPurpleFaint;
+const _kPurpleBorder = kPurpleBorder;
+const _kText         = kText;
 
 class QrPaymentScreen extends StatefulWidget {
   final double total;
@@ -31,51 +35,116 @@ class QrPaymentScreen extends StatefulWidget {
 }
 
 class _QrPaymentScreenState extends State<QrPaymentScreen> {
-  File? _slipImage;
+  io.File? _slipImage;
+  Uint8List? _webImageBytes;
   bool _uploading = false;
-  bool _uploaded = false;
+  bool _uploaded  = false;
+  double _uploadProgress = 0;
+  String? _uploadError;
+
+  // ── Slip upload using real Firebase Storage ─────────────────────────────
   Future<void> _pickSlip() async {
-    final result = await FilePicker.platform.pickFiles(type: FileType.image);
-    if (result != null && result.files.single.path != null) {
-      setState(() {
-        _slipImage = File(result.files.single.path!);
-        _uploading = true;
-      });
-      // Simulate upload delay
-      await Future.delayed(const Duration(seconds: 2));
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 1000,
+      maxHeight: 1000,
+      imageQuality: 50,
+    );
+    
+    if (pickedFile == null) return;
+    
+    final bytes = await pickedFile.readAsBytes();
+    final s = context.read<AppLocaleProvider>().strings;
+
+    // ── 1. Determine orderId (create order first if this is a new checkout) ──
+    String? activeOrderId = widget.orderId;
+    if (activeOrderId == null) {
+      // Place the order now so we have an ID to attach the slip to
+      await context.read<OrdersProvider>().placeOrders(
+        items: widget.selectedItems
+            .map((ci) => {
+                  'itemId':   ci.item.id as String,
+                  'name':     ci.item.name as String,
+                  'price':    ci.item.price as double,
+                  'imageUrl': ci.item.imageUrl as String,
+                  'qty':      ci.quantity as int,
+                })
+            .toList(),
+        tab: OrderTab.toPay,
+        hasSlip: false, // will be updated after upload
+      );
+      // The provider stores orders in order of insertion; last == newest
+      final ordersProvider = context.read<OrdersProvider>();
+      activeOrderId = ordersProvider.orders.isNotEmpty
+          ? ordersProvider.orders.last.id
+          : null;
+      if (!mounted) return;
+      context.read<CartProvider>().clear();
+    }
+
+    setState(() {
+      _webImageBytes  = bytes; // Use bytes for preview on both web and mobile
+      _uploading      = true;
+      _uploadProgress = 0;
+      _uploadError    = null;
+    });
+
+    // ── 2. Upload to Firestore (No Storage bucket used) ──────────────────
+    try {
+      await SlipUploadService.instance.uploadSlip(
+        slipBytes: bytes,
+        orderId:   activeOrderId ?? 'unknown',
+        onProgress: (p) {
+          if (mounted) setState(() => _uploadProgress = p);
+        },
+      );
+
+      if (!mounted) return;
       setState(() {
         _uploading = false;
-        _uploaded = true;
+        _uploaded  = true;
       });
-      // Navigate to orders after short delay
-      await Future.delayed(const Duration(seconds: 2));
-      if (!mounted) return;
-      final ordersProvider = context.read<OrdersProvider>();
-      if (widget.orderId != null) {
-        ordersProvider.markSlipUploaded(widget.orderId!);
-      } else {
-        ordersProvider.placeOrders(
-          items: widget.selectedItems
-              .map(
-                (ci) => {
-                  'itemId': (ci.item.id as String),
-                  'name': (ci.item.name as String),
-                  'price': (ci.item.price as double),
-                  'imageUrl': (ci.item.imageUrl as String),
-                  'qty': (ci.quantity as int),
-                },
-              )
-              .toList(),
-          tab: OrderTab.toPay,
-          hasSlip: true,
-        );
-        // Clear selected items from cart after new order placed
-        context.read<CartProvider>().clear();
-      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            s.isThai
+                ? 'อัปโหลดสลิปสำเร็จ รอ Admin ตรวจสอบ'
+                : 'Slip uploaded — awaiting admin verification.',
+          ),
+          backgroundColor: const Color(0xFF4CAF50),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.all(16),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+
+      // Navigate to the orders screen
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => const OrdersScreen(initialTab: 0)),
         (route) => route.isFirst,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _uploading   = false;
+        _uploadError = e.toString().replaceFirst('Exception: ', '');
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            s.isThai
+                ? 'เกิดข้อผิดพลาด: $_uploadError'
+                : 'Upload failed: $_uploadError',
+          ),
+          backgroundColor: kErrorRedDark,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.all(16),
+        ),
       );
     }
   }
@@ -128,7 +197,7 @@ class _QrPaymentScreenState extends State<QrPaymentScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    s.isThai ? 'ยอดที่ต้องชำระ' : 'Amount Due',
+                    s.amountDue,
                     style: const TextStyle(
                       color: Colors.white70,
                       fontSize: 14,
@@ -284,9 +353,7 @@ class _QrPaymentScreenState extends State<QrPaymentScreen> {
 
                         // Account name
                         Text(
-                          s.isThai
-                              ? 'สแกน QR เพื่อโอนเข้าบัญชี'
-                              : 'Scan QR to transfer',
+                          s.scanToTransfer,
                           style: const TextStyle(
                             color: _kPurple,
                             fontSize: 13,
@@ -367,14 +434,32 @@ class _QrPaymentScreenState extends State<QrPaymentScreen> {
                     border: Border.all(color: _kPurpleBorder, width: 1.5),
                   ),
                   child: _uploading
-                      ? const Center(
-                          child: SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(
-                              color: _kPurple,
-                              strokeWidth: 2.5,
-                            ),
+                      ? Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(4),
+                                child: LinearProgressIndicator(
+                                  value: _uploadProgress > 0 ? _uploadProgress : null,
+                                  backgroundColor: _kPurpleBorder,
+                                  valueColor: const AlwaysStoppedAnimation<Color>(_kPurple),
+                                  minHeight: 6,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                _uploadProgress > 0
+                                    ? '${(_uploadProgress * 100).toStringAsFixed(0)}%'
+                                    : '...',
+                                style: const TextStyle(
+                                  color: _kPurple,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
                           ),
                         )
                       : Row(
@@ -400,16 +485,22 @@ class _QrPaymentScreenState extends State<QrPaymentScreen> {
               ),
 
               // Show selected slip preview
-              if (_slipImage != null && !_uploading)
+              if ((kIsWeb ? _webImageBytes != null : _slipImage != null) && !_uploading)
                 Padding(
                   padding: const EdgeInsets.only(top: 12),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(12),
-                    child: Image.file(
-                      _slipImage!,
-                      height: 160,
-                      fit: BoxFit.cover,
-                    ),
+                    child: kIsWeb
+                        ? Image.memory(
+                            _webImageBytes!,
+                            height: 160,
+                            fit: BoxFit.cover,
+                          )
+                        : Image.file(
+                            _slipImage!,
+                            height: 160,
+                            fit: BoxFit.cover,
+                          ),
                   ),
                 ),
 
@@ -470,9 +561,7 @@ class _QrPaymentScreenState extends State<QrPaymentScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      s.isThai
-                          ? 'ระบบกำลังตรวจสอบการชำระเงินของคุณ'
-                          : 'Your payment is being verified',
+                      s.verifyingPaymentMsg,
                       style: TextStyle(
                         fontSize: 13,
                         color: Colors.green.shade700,
@@ -549,7 +638,7 @@ class _QrPaymentScreenState extends State<QrPaymentScreen> {
                 (route) => route.isFirst,
               );
             },
-            child: Text(s.isThai ? 'ยืนยัน' : 'Confirm'),
+            child: Text(s.confirmLabel),
           ),
         ],
       ),

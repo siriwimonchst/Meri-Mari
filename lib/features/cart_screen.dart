@@ -3,14 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/cart_provider.dart';
 import '../providers/app_locale_provider.dart';
+import '../core/app_theme.dart';
 import 'checkout_screen.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 
-// Design tokens — app purple palette
-const _kPurple = Color(0xFF7B5EA7);
-const _kPurpleLight = Color(0xFFAB9DC4);
-const _kPurpleFaint = Color(0xFFF4F0FA);
-const _kPurpleBorder = Color(0xFFDDD6E8);
-const _kText = Color(0xFF1A1A2E);
+// Design token aliases — source of truth is lib/core/app_theme.dart
+const _kPurple = kPurple;
+const _kPurpleLight = kPurpleLight;
+const _kPurpleFaint = kPurpleFaint;
+const _kPurpleBorder = kPurpleBorder;
+const _kText = kText;
 
 class CartScreen extends StatelessWidget {
   const CartScreen({super.key});
@@ -113,8 +115,6 @@ class CartScreen extends StatelessWidget {
                       isSelected: cart.isSelected(cart.items[i].item.id),
                       onToggleSelect: () =>
                           cart.toggleSelected(cart.items[i].item.id),
-                      onIncrease: () => cart.increaseQty(cart.items[i].item.id),
-                      onDecrease: () => cart.decreaseQty(cart.items[i].item.id),
                       onRemove: () => cart.removeItem(cart.items[i].item.id),
                     ),
                   ),
@@ -161,154 +161,120 @@ class _CartItemTile extends StatelessWidget {
   final CartItem cartItem;
   final bool isSelected;
   final VoidCallback onToggleSelect;
-  final VoidCallback onIncrease;
-  final VoidCallback onDecrease;
   final VoidCallback onRemove;
 
   const _CartItemTile({
     required this.cartItem,
     required this.isSelected,
     required this.onToggleSelect,
-    required this.onIncrease,
-    required this.onDecrease,
     required this.onRemove,
   });
 
   @override
   Widget build(BuildContext context) {
+    final s = context.watch<AppLocaleProvider>().strings;
     final item = cartItem.item;
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isSelected ? _kPurple.withValues(alpha: 0.4) : _kPurpleBorder,
-          width: 1.5,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: _kPurpleLight.withValues(alpha: 0.07),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
+    return Slidable(
+      key: ValueKey(item.id),
+      endActionPane: ActionPane(
+        motion: const DrawerMotion(),
+        extentRatio: 0.22,
+        children: [
+          SlidableAction(
+            onPressed: (_) => onRemove(),
+            backgroundColor: _kPurple,
+            foregroundColor: Colors.white,
+            label: s.deleteLabel,
+            borderRadius: const BorderRadius.horizontal(right: Radius.circular(16)),
           ),
         ],
       ),
-      child: Row(
-        children: [
-          // Checkbox
-          GestureDetector(
-            onTap: onToggleSelect,
-            child: _Checkbox(checked: isSelected),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected ? _kPurple.withValues(alpha: 0.4) : _kPurpleBorder,
+            width: 1.5,
           ),
-          const SizedBox(width: 12),
-
-          // Product image
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: SizedBox(
-              width: 72,
-              height: 72,
-              child: Image.network(
-                item.imageUrl,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
-                  color: _kPurpleFaint,
-                  child: const Icon(
-                    Icons.image_not_supported,
-                    color: _kPurpleBorder,
-                  ),
-                ),
-              ),
+          boxShadow: [
+            BoxShadow(
+              color: _kPurpleLight.withValues(alpha: 0.07),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
             ),
-          ),
-          const SizedBox(width: 12),
-
-          // Name + collection + price
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.name,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: _kText,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  item.collection.isNotEmpty ? item.collection : 'Meri-Mari',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey.shade500,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  '฿${item.price.toStringAsFixed(0)}',
-                  style: const TextStyle(
-                    color: _kPurple,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 16,
-                  ),
-                ),
-              ],
+          ],
+        ),
+        child: Row(
+          children: [
+            // Checkbox
+            GestureDetector(
+              onTap: onToggleSelect,
+              child: _Checkbox(checked: isSelected),
             ),
-          ),
+            const SizedBox(width: 12),
 
-          // Qty controls — horizontal: [−] [N] [+]
-          Column(
-            children: [
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _QtyButton(icon: Icons.remove, onTap: onDecrease),
-                  Container(
-                    width: 36,
-                    alignment: Alignment.center,
-                    child: Text(
-                      '${cartItem.quantity}',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        color: _kText,
-                      ),
+            // Product image
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: SizedBox(
+                width: 72,
+                height: 72,
+                child: Image.network(
+                  item.imageUrl,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(
+                    color: _kPurpleFaint,
+                    child: const Icon(
+                      Icons.image_not_supported,
+                      color: _kPurpleBorder,
                     ),
                   ),
-                  _QtyButton(icon: Icons.add, onTap: onIncrease),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+
+            // Name + collection + price
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.name,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: _kText,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    item.collection.isNotEmpty ? item.collection : 'Meri-Mari',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade500,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    '฿${item.price.toStringAsFixed(0)}',
+                    style: const TextStyle(
+                      color: _kPurple,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 16,
+                    ),
+                  ),
                 ],
               ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
+            ),
 
-class _QtyButton extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback onTap;
-  const _QtyButton({required this.icon, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 32,
-        height: 32,
-        decoration: BoxDecoration(
-          color: _kPurpleFaint,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: _kPurpleBorder, width: 1),
+          ],
         ),
-        child: Icon(icon, size: 16, color: _kPurple),
       ),
     );
   }

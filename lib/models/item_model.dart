@@ -12,6 +12,10 @@ class ItemModel {
   final List<String> tags;
   final double shippingCost;
 
+  /// UID of the seller who owns this product (null = admin-seeded item).
+  final String? sellerId;
+  final bool isSold;
+
   ItemModel({
     required this.id,
     required this.name,
@@ -20,6 +24,8 @@ class ItemModel {
     required this.imageUrls,
     required this.tags,
     required this.shippingCost,
+    this.sellerId,
+    this.isSold = false,
   });
 
   /// Convenience getter for the primary/cover image URL.
@@ -92,6 +98,8 @@ class ItemModel {
       imageUrls: imageUrls,
       tags: tags,
       shippingCost: _toDouble(data['shippingCost']),
+      sellerId: data['sellerId'] as String?,
+      isSold: data['isSold'] as bool? ?? false,
     );
   }
 
@@ -113,6 +121,8 @@ class ItemModel {
       'imageUrls': imageUrls,
       'tags': tags,
       'shippingCost': shippingCost,
+      'isSold': isSold,
+      if (sellerId != null) 'sellerId': sellerId,
     };
   }
 }

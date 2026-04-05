@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/favorites_provider.dart';
+import '../providers/app_locale_provider.dart';
+import '../core/app_theme.dart';
+import '../core/secure_storage_service.dart';
 import 'auth_widgets.dart';
 import 'main_screen.dart';
 import 'register.dart';
@@ -27,18 +29,13 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   Future<void> _loadSavedCredentials() async {
-    final prefs = await SharedPreferences.getInstance();
-    final savedEmail = prefs.getString('saved_email');
-    final savedPass = prefs.getString('saved_pass');
-
-    if (savedEmail != null && savedPass != null) {
-      if (mounted) {
-        setState(() {
-          _emailCtrl.text = savedEmail;
-          _passCtrl.text = savedPass;
-          _rememberMe = true;
-        });
-      }
+    final creds = await SecureStorageService.instance.loadCredentials();
+    if (creds != null && mounted) {
+      setState(() {
+        _emailCtrl.text = creds.email;
+        _passCtrl.text  = creds.password;
+        _rememberMe     = true;
+      });
     }
   }
 
@@ -53,7 +50,8 @@ class _AuthScreenState extends State<AuthScreen> {
     final email = _emailCtrl.text.trim();
     final pass = _passCtrl.text.trim();
     if (email.isEmpty || pass.isEmpty) {
-      _showError('กรุณากรอก Email และ Password');
+      final s = context.read<AppLocaleProvider>().strings;
+      _showError(s.isThai ? 'กรุณากรอก Email และ Password' : 'Please enter email and password');
       return;
     }
     setState(() => _loading = true);
@@ -63,13 +61,11 @@ class _AuthScreenState extends State<AuthScreen> {
         password: pass,
       );
 
-      final prefs = await SharedPreferences.getInstance();
+      final secureStorage = SecureStorageService.instance;
       if (_rememberMe) {
-        await prefs.setString('saved_email', email);
-        await prefs.setString('saved_pass', pass);
+        await secureStorage.saveCredentials(email: email, password: pass);
       } else {
-        await prefs.remove('saved_email');
-        await prefs.remove('saved_pass');
+        await secureStorage.clearCredentials();
       }
 
       if (!mounted) return;
@@ -129,7 +125,7 @@ class _AuthScreenState extends State<AuthScreen> {
         children: [
           // ── Background Gradient ───────────────────────────────────────
           Container(
-            height: screenHeight * 0.45,
+      height: screenHeight * kAuthBgHeightRatio,
             decoration: const BoxDecoration(
               gradient: LinearGradient(
                 colors: [Color(0xFFC5B4E3), Color(0xFF8B73AF)],
@@ -141,45 +137,45 @@ class _AuthScreenState extends State<AuthScreen> {
             child: Stack(
               children: [
                 Positioned(
-                  top: -150,
-                  right: -150,
+                  top: kDecorOuterOffset,
+                  right: kDecorOuterOffset,
                   child: Container(
-                    width: 500,
-                    height: 500,
+                    width: kDecorOuterSize,
+                    height: kDecorOuterSize,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.15),
+                        color: Colors.white.withValues(alpha: kDecorBorderAlpha),
                         width: 1,
                       ),
                     ),
                   ),
                 ),
                 Positioned(
-                  top: -100,
-                  right: -100,
+                  top: kDecorMidOffset,
+                  right: kDecorMidOffset,
                   child: Container(
-                    width: 400,
-                    height: 400,
+                    width: kDecorMidSize,
+                    height: kDecorMidSize,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.15),
+                        color: Colors.white.withValues(alpha: kDecorBorderAlpha),
                         width: 1,
                       ),
                     ),
                   ),
                 ),
                 Positioned(
-                  top: -50,
-                  right: -50,
+                  top: kDecorInnerOffset,
+                  right: kDecorInnerOffset,
                   child: Container(
-                    width: 300,
-                    height: 300,
+                    width: kDecorInnerSize,
+                    height: kDecorInnerSize,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.15),
+                        color: Colors.white.withValues(alpha: kDecorBorderAlpha),
                         width: 1,
                       ),
                     ),
@@ -193,7 +189,7 @@ class _AuthScreenState extends State<AuthScreen> {
           Align(
             alignment: Alignment.bottomCenter,
             child: Container(
-              height: screenHeight * 0.75,
+          height: screenHeight * kAuthCardHeightRatio,
               padding: const EdgeInsets.fromLTRB(28, 48, 28, 28),
               decoration: const BoxDecoration(
                 color: Colors.white,
@@ -202,14 +198,17 @@ class _AuthScreenState extends State<AuthScreen> {
                   topRight: Radius.circular(32),
                 ),
               ),
-              child: SingleChildScrollView(
+              child: Builder(
+                builder: (context) {
+                  final s = context.watch<AppLocaleProvider>().strings;
+                  return SingleChildScrollView(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     // Title
-                    const Text(
-                      'Welcome Back!',
-                      style: TextStyle(
+                    Text(
+                      s.isThai ? 'ยินดีต้อนรับกลับ!' : 'Welcome Back!',
+                      style: const TextStyle(
                         fontSize: 32,
                         fontWeight: FontWeight.w800,
                         color: Color(0xFF1A1A2E),
@@ -218,21 +217,23 @@ class _AuthScreenState extends State<AuthScreen> {
                     const SizedBox(height: 12),
 
                     // Catchy Phrase
-                    const Text(
-                      'Ready to find your favorite items?\nYour shopping journey starts here.',
+                    Text(
+                      s.isThai
+                          ? 'พร้อมค้นหาสินค้าที่คุณชอบแล้วหรือยัง?\nการช้อปปิ้งของคุณเริ่มต้นที่นี่'
+                          : 'Ready to find your favorite items?\nYour shopping journey starts here.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 14,
                         color: Color(0xFF757575),
                         height: 1.4,
                       ),
                     ),
-                    const SizedBox(height: 48),
+                    const SizedBox(height: 32),
 
                     // Email field
                     AuthInputField(
                       controller: _emailCtrl,
-                      hint: 'Enter email',
+                      hint: s.isThai ? 'กรอกอีเมล' : 'Enter email',
                       icon: Icons.email_outlined,
                       keyboardType: TextInputType.emailAddress,
                     ),
@@ -241,7 +242,7 @@ class _AuthScreenState extends State<AuthScreen> {
                     // Password field
                     AuthInputField(
                       controller: _passCtrl,
-                      hint: 'Password',
+                      hint: s.password,
                       icon: Icons.lock_outline,
                       obscure: _obscure,
                       suffix: IconButton(
@@ -258,7 +259,7 @@ class _AuthScreenState extends State<AuthScreen> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Forgot Password / Remember me
+                    // Remember me / Forgot Password
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -292,9 +293,9 @@ class _AuthScreenState extends State<AuthScreen> {
                                     : null,
                               ),
                               const SizedBox(width: 8),
-                              const Text(
-                                'Remember me',
-                                style: TextStyle(
+                              Text(
+                                s.isThai ? 'จดจำฉัน' : 'Remember me',
+                                style: const TextStyle(
                                   fontSize: 13,
                                   color: Color(0xFF424242),
                                 ),
@@ -304,9 +305,9 @@ class _AuthScreenState extends State<AuthScreen> {
                         ),
                         GestureDetector(
                           onTap: () {},
-                          child: const Text(
-                            'Forgot password?',
-                            style: TextStyle(
+                          child: Text(
+                            s.forgotPassword,
+                            style: const TextStyle(
                               color: Color(0xFF7B5EA7),
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
@@ -315,16 +316,16 @@ class _AuthScreenState extends State<AuthScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 48),
+                    const SizedBox(height: 28),
 
                     // Login Button (Gradient)
                     AuthGradientButton(
-                      label: 'Log In',
+                      label: s.login,
                       loading: _loading,
                       onPressed: _loginWithEmail,
                     ),
 
-                    const SizedBox(height: 48),
+                    const SizedBox(height: 24),
 
                     // Sign up link
                     GestureDetector(
@@ -335,16 +336,16 @@ class _AuthScreenState extends State<AuthScreen> {
                         ),
                       ),
                       child: RichText(
-                        text: const TextSpan(
-                          text: "Don't have an account? ",
-                          style: TextStyle(
+                        text: TextSpan(
+                          text: s.noAccount,
+                          style: const TextStyle(
                             color: Color(0xFF757575),
                             fontSize: 14,
                           ),
                           children: [
                             TextSpan(
-                              text: 'Sign Up',
-                              style: TextStyle(
+                              text: s.signUp,
+                              style: const TextStyle(
                                 color: Color(0xFF7B5EA7),
                                 fontWeight: FontWeight.w700,
                               ),
@@ -353,9 +354,11 @@ class _AuthScreenState extends State<AuthScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 16),
                   ],
                 ),
+                  );
+                },
               ),
             ),
           ),

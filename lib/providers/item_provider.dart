@@ -19,16 +19,74 @@ class ItemProvider with ChangeNotifier {
 
   List<ItemModel> get filteredItems {
     return _items.where((item) {
-      final query = _searchQuery.toLowerCase();
+      final queryRaw = _searchQuery.toLowerCase();
+      final queryCanonical = _toCanonicalKey(queryRaw);
       final matchSearch =
-          item.name.toLowerCase().contains(query) ||
-          item.collection.toLowerCase().contains(query);
-      // If no tags selected, show all. Otherwise item must have at least one matching tag.
+          item.name.toLowerCase().contains(queryRaw) ||
+          item.collection.toLowerCase().contains(queryRaw) ||
+          item.tags.any((tag) => tag.toLowerCase().contains(queryRaw)) ||
+          item.tags.any((tag) => _toCanonicalKey(tag).contains(queryCanonical));
+      // Normalize item tags to canonical keys before matching
       final matchTags =
           _selectedTags.isEmpty ||
-          item.tags.any((t) => _selectedTags.contains(t));
+          _selectedTags.every((sTag) =>
+              item.tags.any((iTag) => _toCanonicalKey(iTag) == sTag));
       return matchSearch && matchTags;
     }).toList();
+  }
+
+  /// Converts any raw tag value (Thai, English, legacy) to a stable canonical key.
+  /// Mirrors the logic in AppStrings.tagLabel() but returns keys instead of labels.
+  static String _toCanonicalKey(String raw) {
+    final t = raw.trim().toLowerCase();
+    switch (t) {
+      case 'no_defect':
+      case 'no defect':
+      case 'nodefect':
+      case '\u0e44\u0e21\u0e48\u0e21\u0e35\u0e15\u0e33\u0e2b\u0e19\u0e34':
+        return 'no_defect';
+
+      case 'brand_new':
+      case 'brand new':
+      case 'brandnew':
+      case 'new':
+      case '\u0e21\u0e37\u0e2d 1':
+      case '\u0e21\u0e37\u0e2d1':
+        return 'brand_new';
+
+      case 'pre_owned':
+      case 'pre-owned':
+      case 'pre owned':
+      case 'preowned':
+      case 'used':
+      case '\u0e21\u0e37\u0e2d 2':
+      case '\u0e21\u0e37\u0e2d2':
+        return 'pre_owned';
+
+      case 'misb':
+        return 'misb';
+
+      case 'check_card':
+      case 'check card':
+      case 'checkcard':
+      case 'check-card':
+      case 'เช็คการ์ด':
+      case '\u0e40\u0e0a\u0e47\u0e04\u0e01\u0e32\u0e23\u0e14':
+        return 'check_card';
+
+      case 'limited':
+      case 'limited edition':
+      case 'ลิมิเต็ด':
+        return 'limited';
+
+      case 'secret':
+      case 'secret rare':
+      case 'ซีเคร็ท':
+        return 'secret';
+
+      default:
+        return t; // catch-all
+    }
   }
 
   // ─── Constructor: เริ่ม listen Firestore ─────────────────────────────────
@@ -55,6 +113,17 @@ class ItemProvider with ChangeNotifier {
           ],
           'tags': ['มือ 1', 'แบบสุ่ม'],
           'shippingCost': 50.0,
+        });
+        // Seed a Thai-named item
+        await _db.collection('items').add({
+          'name': 'Molly สีพาสเทล รุ่นพิเศษ',
+          'collection': 'Molly',
+          'price': 1200.0,
+          'imageUrls': [
+            'https://firebasestorage.googleapis.com/v0/b/meri-mari.appspot.com/o/molly_mock.jpg?alt=media',
+          ],
+          'tags': ['เช็คการ์ด', 'มือ 1'],
+          'shippingCost': 60.0,
         });
       }
     } catch (e) {
