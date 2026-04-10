@@ -43,6 +43,7 @@ class _QrPaymentScreenState extends State<QrPaymentScreen> {
   String? _uploadError;
 
   // ── Slip upload using real Firebase Storage ─────────────────────────────
+  // ignore: unused_element
   Future<void> _pickSlip() async {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(
@@ -147,6 +148,75 @@ class _QrPaymentScreenState extends State<QrPaymentScreen> {
         ),
       );
     }
+  }
+
+  Future<void> _handleUploadPressed() async {
+    final s = context.read<AppLocaleProvider>().strings;
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        content: Padding(
+          padding: const EdgeInsets.only(top: 10),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.info_outline_rounded, color: _kPurple, size: 52),
+              const SizedBox(height: 12),
+              Text(
+                s.isThai
+                    ? 'ขออภัยในความไม่สะดวก\nเนื่องจากแอปพลิเคชันเป็นเพียง Version ทดลอง ทั้งตัวสินค้าและคิวอาร์โค้ดธนาคารล้วนเป็นข้อมูลชั่วคราวจำลองเท่านั้น จึงจะยังไม่มีการซื้อขายเกิดขึ้นจริงภายในแอปของเรา'
+                    : 'We apologize for the inconvenience.\nAs this application is a Demo version, the products and bank QR codes are only mockups. No actual transactions or purchases will occur within our application.',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: _kText,
+                  height: 1.5,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+        contentPadding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+        actionsPadding: EdgeInsets.zero,
+        actions: [
+          Container(
+            decoration: BoxDecoration(
+              border: Border(top: BorderSide(color: Colors.grey.shade200)),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextButton(
+                    onPressed: () => Navigator.pop(ctx, true),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.only(
+                          bottomLeft: Radius.circular(16),
+                          bottomRight: Radius.circular(16),
+                        ),
+                      ),
+                    ),
+                    child: Text(
+                      s.isThai ? 'ตกลง' : 'OK',
+                      style: const TextStyle(
+                        color: _kPurple,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -424,7 +494,7 @@ class _QrPaymentScreenState extends State<QrPaymentScreen> {
             if (!_uploaded) ...[
               // Upload slip button
               GestureDetector(
-                onTap: _uploading ? null : _pickSlip,
+                onTap: _uploading ? null : _handleUploadPressed,
                 child: Container(
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(vertical: 16),

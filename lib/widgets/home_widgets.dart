@@ -13,6 +13,7 @@ import '../providers/item_provider.dart';
 import '../providers/address_provider.dart';
 import 'product_card.dart';
 import '../features/search_screen.dart';
+import '../features/address_screen.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Internal data classes
@@ -491,13 +492,43 @@ class _HomeAddressSheetState extends State<HomeAddressSheet> {
           const SizedBox(height: 24),
 
           // Title
-          Text(
-            s.myAddressTitle,
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w900,
-              color: kText,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                s.myAddressTitle,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                  color: kText,
+                ),
+              ),
+              GestureDetector(
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const AddressScreen(),
+                    ),
+                  );
+                },
+                child: Row(
+                  children: [
+                    const Icon(Icons.add_rounded, color: kPurple, size: 20),
+                    const SizedBox(width: 4),
+                    Text(
+                      s.isThai ? 'เพิ่มที่อยู่' : 'Add new',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                        color: kPurple,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 20),
 

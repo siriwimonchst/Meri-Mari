@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/favorites_provider.dart';
 import '../providers/app_locale_provider.dart';
+import '../providers/cart_provider.dart';
 import '../models/item_model.dart';
 import '../widgets/product_card.dart';
 import '../core/app_theme.dart';
@@ -78,6 +79,7 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
   @override
   Widget build(BuildContext context) {
     final fav = context.watch<FavoritesProvider>();
+    final cartProvider = context.watch<CartProvider>();
     final locale = context.watch<AppLocaleProvider>();
     final s = locale.strings;
     final items = fav.favoriteItems;
@@ -168,6 +170,7 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
             const SizedBox(width: 8),
             _AppBarIcon(
               icon: Icons.shopping_bag_outlined,
+              badgeCount: cartProvider.totalCount,
               onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const CartScreen()),
@@ -556,21 +559,50 @@ class _FilterChip extends StatelessWidget {
 class _AppBarIcon extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
-  const _AppBarIcon({required this.icon, required this.onTap});
+  final int badgeCount;
+  const _AppBarIcon({required this.icon, required this.onTap, this.badgeCount = 0});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 42,
-      height: 42,
-      decoration: BoxDecoration(
-        color: kPurpleFaint,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: IconButton(
-        icon: Icon(icon, color: kPurple, size: 20),
-        onPressed: onTap,
-      ),
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Container(
+          width: 42,
+          height: 42,
+          decoration: BoxDecoration(
+            color: kPurpleFaint,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: IconButton(
+            icon: Icon(icon, color: kPurple, size: 20),
+            onPressed: onTap,
+          ),
+        ),
+        if (badgeCount > 0)
+          Positioned(
+            top: -4,
+            right: -4,
+            child: Container(
+              width: 18,
+              height: 18,
+              decoration: const BoxDecoration(
+                color: kPurple,
+                shape: BoxShape.circle,
+              ),
+              child: Center(
+                child: Text(
+                  '$badgeCount',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

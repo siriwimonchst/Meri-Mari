@@ -408,6 +408,87 @@ class CheckoutScreen extends StatelessWidget {
                 height: 52,
                 child: ElevatedButton(
                   onPressed: () {
+                    // Check if delivery address is missing
+                    if (addressProvider.defaultAddress == null) {
+                      showDialog(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          backgroundColor: Colors.white,
+                          surfaceTintColor: Colors.transparent,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          content: Padding(
+                            padding: const EdgeInsets.only(top: 10),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.location_off_rounded, color: _kPurpleLight, size: 52),
+                                const SizedBox(height: 16),
+                                Text(
+                                  s.isThai ? 'ไม่มีที่อยู่จัดส่ง' : 'No Delivery Address',
+                                  style: const TextStyle(
+                                    fontSize: 19,
+                                    fontWeight: FontWeight.w900,
+                                    color: _kText,
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  s.isThai
+                                      ? 'กรุณาเพิ่มที่อยู่จัดส่งในหน้าโปรไฟล์ หรือกดเลือกที่อยู่ก่อนทำการสั่งซื้อ'
+                                      : 'Please add a delivery address or select one before placing your order.',
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    color: _kText,
+                                    height: 1.5,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          contentPadding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+                          actionsPadding: EdgeInsets.zero,
+                          actions: [
+                            Container(
+                              decoration: BoxDecoration(
+                                border: Border(top: BorderSide(color: Colors.grey.shade200)),
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: TextButton(
+                                      onPressed: () {
+                                        Navigator.pop(ctx);
+                                      },
+                                      style: TextButton.styleFrom(
+                                        padding: const EdgeInsets.symmetric(vertical: 16),
+                                        shape: const RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.only(
+                                            bottomLeft: Radius.circular(16),
+                                            bottomRight: Radius.circular(16),
+                                          ),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        s.isThai ? 'ตกลง' : 'OK',
+                                        style: const TextStyle(
+                                          color: _kPurple,
+                                          fontWeight: FontWeight.w800,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                      return;
+                    }
+
                     Navigator.push(
                       context,
                       MaterialPageRoute(

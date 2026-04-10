@@ -71,7 +71,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(s.isThai ? 'บันทึกข้อมูลสำเร็จ' : 'Profile updated successfully'),
-          backgroundColor: Colors.green,
+          backgroundColor: kPurpleLight,
         ),
       );
       Navigator.pop(context);
@@ -115,7 +115,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(s.isThai ? 'อัปโหลดสำเร็จ' : 'Upload successful'),
-            backgroundColor: Colors.green,
+            backgroundColor: kPurpleLight,
           ),
         );
       }

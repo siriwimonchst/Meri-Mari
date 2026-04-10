@@ -11,6 +11,7 @@ import 'package:provider/provider.dart';
 import '../core/app_theme.dart';
 import '../providers/app_locale_provider.dart';
 import '../providers/favorites_provider.dart';
+import '../providers/cart_provider.dart';
 import '../widgets/profile_widgets.dart';
 import 'account_settings_screen.dart';
 import 'notifications_screen.dart';
@@ -49,6 +50,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final locale = context.watch<AppLocaleProvider>();
+    final cartProvider = context.watch<CartProvider>();
     final s = locale.strings;
     final user = FirebaseAuth.instance.currentUser;
 
@@ -116,24 +118,52 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   Padding(
                     padding: const EdgeInsets.only(right: 16),
-                    child: Container(
-                      width: 42,
-                      height: 42,
-                      decoration: BoxDecoration(
-                        color: kPurpleFaint,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: IconButton(
-                        icon: const Icon(
-                          Icons.shopping_bag_outlined,
-                          color: kPurple,
-                          size: 20,
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Container(
+                          width: 42,
+                          height: 42,
+                          decoration: BoxDecoration(
+                            color: kPurpleFaint,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: IconButton(
+                            icon: const Icon(
+                              Icons.shopping_bag_outlined,
+                              color: kPurple,
+                              size: 20,
+                            ),
+                            onPressed: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const CartScreen()),
+                            ),
+                          ),
                         ),
-                        onPressed: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const CartScreen()),
-                        ),
-                      ),
+                        if (cartProvider.totalCount > 0)
+                          Positioned(
+                            top: -4,
+                            right: -4,
+                            child: Container(
+                              width: 18,
+                              height: 18,
+                              decoration: const BoxDecoration(
+                                color: kPurple,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Center(
+                                child: Text(
+                                  '${cartProvider.totalCount}',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                 ],
