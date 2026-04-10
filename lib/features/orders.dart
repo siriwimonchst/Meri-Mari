@@ -239,56 +239,92 @@ class _ToPayCardState extends State<_ToPayCard> {
       builder: (dlg) => AlertDialog(
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: Text(
-          s.isThai ? 'ยกเลิกออเดอร์?' : 'Cancel Order?',
-          style: const TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.w900,
-            color: _kText,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        content: Padding(
+          padding: const EdgeInsets.only(top: 10),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                s.isThai ? 'ยกเลิกออเดอร์?' : 'Cancel Order?',
+                style: const TextStyle(
+                  fontSize: 19,
+                  fontWeight: FontWeight.w900,
+                  color: _kText,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                s.isThai
+                    ? 'หากยกเลิก สินค้าจะกลับมาให้ผู้อื่นสามารถสั่งซื้อได้อีกครั้ง'
+                    : 'The item will be available for others to purchase again.',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 15,
+                  color: _kText,
+                  height: 1.4,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
           ),
         ),
-        content: Text(
-          s.isThai
-              ? 'หากยกเลิก สินค้าจะกลับมาให้ผู้อื่นสามารถสั่งซื้อได้อีกครั้ง'
-              : 'The item will be available for others to purchase again.',
-          style: const TextStyle(
-            fontSize: 15,
-            color: Colors.black54,
-            height: 1.4,
-          ),
-        ),
-        actionsPadding: const EdgeInsets.fromLTRB(12, 0, 24, 24),
+        contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+        actionsPadding: EdgeInsets.zero,
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dlg),
-            child: Text(
-              s.cancelLabel,
-              style: const TextStyle(
-                color: Colors.grey,
-                fontWeight: FontWeight.w600,
-              ),
+          Container(
+            decoration: BoxDecoration(
+              border: Border(top: BorderSide(color: Colors.grey.shade200)),
             ),
-          ),
-          const SizedBox(width: 8),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: kPurple,
-              foregroundColor: Colors.white,
-              elevation: 4,
-              shadowColor: kPurple.withValues(alpha: 0.3),
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-            ),
-            onPressed: () {
-              Navigator.pop(dlg);
-              context.read<OrdersProvider>().cancelOrder(orderId);
-            },
-            child: Text(
-              s.confirmCancelLabel,
-              style: const TextStyle(fontWeight: FontWeight.w800),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextButton(
+                    onPressed: () => Navigator.pop(dlg),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.only(
+                          bottomLeft: Radius.circular(16),
+                        ),
+                      ),
+                    ),
+                    child: Text(
+                      s.cancelLabel,
+                      style: const TextStyle(
+                        color: _kText,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                ),
+                Container(width: 1, height: 50, color: Colors.grey.shade200),
+                Expanded(
+                  child: TextButton(
+                    onPressed: () {
+                      Navigator.pop(dlg);
+                      context.read<OrdersProvider>().cancelOrder(orderId);
+                    },
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.only(
+                          bottomRight: Radius.circular(16),
+                        ),
+                      ),
+                    ),
+                    child: Text(
+                      s.confirmCancelLabel,
+                      style: const TextStyle(
+                        color: kPurple,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],

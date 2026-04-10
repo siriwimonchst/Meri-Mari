@@ -318,7 +318,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                     icon: Icons.chat_bubble_outline,
                     title: s.contactSeller,
                   ),
-                  const Divider(height: 1, indent: 50),
+                  const Divider(height: 1, indent: 16, endIndent: 16),
                   _ServiceTile(icon: Icons.help_outline, title: s.helpCenter),
                 ],
               ),

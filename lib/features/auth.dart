@@ -8,6 +8,7 @@ import '../core/secure_storage_service.dart';
 import 'auth_widgets.dart';
 import 'main_screen.dart';
 import 'register.dart';
+import 'forgot_password_screen.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -277,11 +278,11 @@ class _AuthScreenState extends State<AuthScreen> {
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(6),
                                   border: Border.all(
-                                    color: const Color(0xFF1A1A2E),
+                                    color: kPurple,
                                     width: 1.5,
                                   ),
                                   color: _rememberMe
-                                      ? const Color(0xFF1A1A2E)
+                                      ? kPurple
                                       : Colors.transparent,
                                 ),
                                 child: _rememberMe
@@ -304,7 +305,14 @@ class _AuthScreenState extends State<AuthScreen> {
                           ),
                         ),
                         GestureDetector(
-                          onTap: () {},
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const ForgotPasswordScreen(),
+                              ),
+                            );
+                          },
                           child: Text(
                             s.forgotPassword,
                             style: const TextStyle(

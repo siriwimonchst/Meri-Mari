@@ -583,62 +583,119 @@ class _QrPaymentScreenState extends State<QrPaymentScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(
-          s.payLater,
-          style: const TextStyle(fontWeight: FontWeight.w800, color: _kText),
-        ),
-        content: Text(
-          s.isThai
-              ? 'คำสั่งซื้อจะถูกบันทึกไว้ คุณสามารถชำระเงินภายหลังได้ในหน้าออเดอร์'
-              : 'Your order will be saved and you can pay later from the orders page.',
-          style: const TextStyle(color: Colors.black54),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(
-              s.cancelLabel,
-              style: const TextStyle(color: Colors.grey),
-            ),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _kPurple,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-            onPressed: () {
-              Navigator.pop(ctx);
-              if (widget.orderId == null) {
-                // Place order in OrdersProvider (To Pay tab)
-                context.read<OrdersProvider>().placeOrders(
-                  items: widget.selectedItems
-                      .map(
-                        (ci) => {
-                          'itemId': (ci.item.id as String),
-                          'name': (ci.item.name as String),
-                          'price': (ci.item.price as double),
-                          'imageUrl': (ci.item.imageUrl as String),
-                          'qty': (ci.quantity as int),
-                        },
-                      )
-                      .toList(),
-                  tab: OrderTab.toPay,
-                );
-                context.read<CartProvider>().clear();
-              }
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const OrdersScreen(initialTab: 0),
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        content: Padding(
+          padding: const EdgeInsets.only(top: 10),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                s.payLater,
+                style: const TextStyle(
+                  fontSize: 19,
+                  fontWeight: FontWeight.w900,
+                  color: _kText,
                 ),
-                (route) => route.isFirst,
-              );
-            },
-            child: Text(s.confirmLabel),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                s.isThai
+                    ? 'คำสั่งซื้อจะถูกบันทึกไว้ คุณสามารถชำระเงินภายหลังได้ในหน้าออเดอร์'
+                    : 'Your order will be saved and you can pay later from the orders page.',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 15,
+                  color: _kText,
+                  height: 1.4,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+        contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+        actionsPadding: EdgeInsets.zero,
+        actions: [
+          Container(
+            decoration: BoxDecoration(
+              border: Border(top: BorderSide(color: Colors.grey.shade200)),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.only(
+                          bottomLeft: Radius.circular(16),
+                        ),
+                      ),
+                    ),
+                    child: Text(
+                      s.cancelLabel,
+                      style: const TextStyle(
+                        color: _kText,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                ),
+                Container(width: 1, height: 50, color: Colors.grey.shade200),
+                Expanded(
+                  child: TextButton(
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      if (widget.orderId == null) {
+                        // Place order in OrdersProvider (To Pay tab)
+                        context.read<OrdersProvider>().placeOrders(
+                          items: widget.selectedItems
+                              .map(
+                                (ci) => {
+                                  'itemId': (ci.item.id as String),
+                                  'name': (ci.item.name as String),
+                                  'price': (ci.item.price as double),
+                                  'imageUrl': (ci.item.imageUrl as String),
+                                  'qty': (ci.quantity as int),
+                                },
+                              )
+                              .toList(),
+                          tab: OrderTab.toPay,
+                        );
+                        context.read<CartProvider>().clear();
+                      }
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const OrdersScreen(initialTab: 0),
+                        ),
+                        (route) => route.isFirst,
+                      );
+                    },
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.only(
+                          bottomRight: Radius.circular(16),
+                        ),
+                      ),
+                    ),
+                    child: Text(
+                      s.confirmLabel,
+                      style: const TextStyle(
+                        color: _kPurple,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),

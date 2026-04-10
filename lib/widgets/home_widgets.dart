@@ -11,9 +11,8 @@ import '../core/address_service.dart';
 import '../providers/app_locale_provider.dart';
 import '../providers/item_provider.dart';
 import '../providers/address_provider.dart';
-import '../features/search_results_screen.dart';
 import 'product_card.dart';
-
+import '../features/search_screen.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Internal data classes
@@ -23,10 +22,12 @@ class HomeBannerItem {
   final String title;
   final String subtitle;
   final Color accentColor;
+  final String? bannerAsset; // Dedicated field for a full-width local asset
   const HomeBannerItem({
     required this.title,
     required this.subtitle,
     required this.accentColor,
+    this.bannerAsset,
   });
 }
 
@@ -35,16 +36,13 @@ const List<HomeBannerItem> homeBanners = [
     title: 'New Arrivals',
     subtitle: 'ของใหม่มาแล้ว!\nเช็คก่อนใครได้เลย',
     accentColor: kPurple,
+    bannerAsset: 'assets/banner_01.jpg',
   ),
   HomeBannerItem(
     title: 'Flash Sale',
     subtitle: 'ลดราคาพิเศษ\nวันนี้เท่านั้น!',
     accentColor: Color(0xFF9C6FD6),
-  ),
-  HomeBannerItem(
-    title: 'Authentic Only',
-    subtitle: 'สินค้าลิขสิทธิ์แท้\n100% ทุกชิ้น',
-    accentColor: kPurpleLight,
+    bannerAsset: 'assets/banner_02.jpg',
   ),
 ];
 
@@ -143,16 +141,11 @@ class _HomeSearchBarState extends State<HomeSearchBar> {
     super.dispose();
   }
 
-  void _submitSearch() {
-    if (_controller.text.trim().isNotEmpty) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) =>
-              SearchResultsScreen(initialQuery: _controller.text.trim()),
-        ),
-      );
-    }
+  void _goToSearch() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const SearchScreen()),
+    );
   }
 
   @override
@@ -160,34 +153,32 @@ class _HomeSearchBarState extends State<HomeSearchBar> {
     return Row(
       children: [
         Expanded(
-          child: Container(
-            height: 48,
-            decoration: BoxDecoration(
-              color: kPurpleFaint,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: kPurpleBorder, width: 1),
-            ),
-            child: TextField(
-              controller: _controller,
-              style: const TextStyle(fontSize: 14, color: kText),
-              textInputAction: TextInputAction.search,
-              onSubmitted: (_) => _submitSearch(),
-              decoration: InputDecoration(
-                hintText: widget.hint,
-                hintStyle: const TextStyle(color: kSubText, fontSize: 14),
-                contentPadding: const EdgeInsets.symmetric(
-                  vertical: 14,
-                  horizontal: 16,
+          child: GestureDetector(
+            onTap: _goToSearch,
+            child: Container(
+              height: 48,
+              decoration: BoxDecoration(
+                color: kPurpleFaint,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: kPurpleBorder, width: 1),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        widget.hint,
+                        style: const TextStyle(color: kSubText, fontSize: 14),
+                      ),
+                    ),
+                    const Icon(
+                      Icons.search_rounded,
+                      color: kPurple,
+                      size: 20,
+                    ),
+                  ],
                 ),
-                suffixIcon: IconButton(
-                  icon: const Icon(
-                    Icons.search_rounded,
-                    color: kPurpleLight,
-                    size: 20,
-                  ),
-                  onPressed: _submitSearch,
-                ),
-                border: InputBorder.none,
               ),
             ),
           ),
@@ -245,58 +236,81 @@ class HomeBannerCarousel extends StatelessWidget {
                       width: 1,
                     ),
                   ),
-                  padding: const EdgeInsets.fromLTRB(24, 20, 20, 20),
-                  child: Row(
+                  child: Stack(
                     children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
+                      // Full width asset image
+                      if (banner.bannerAsset != null)
+                        Positioned.fill(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(20),
+                            child: Image.asset(
+                              banner.bannerAsset!,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ),
+                      // Overlay content
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(24, 20, 20, 20),
+                        child: Row(
                           children: [
-                            Text(
-                              banner.title,
-                              style: TextStyle(
-                                color: banner.accentColor,
-                                fontSize: 18,
-                                fontWeight: FontWeight.w900,
-                                height: 1.2,
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  if (banner.bannerAsset == null) ...[
+                                    Text(
+                                      banner.title,
+                                      style: TextStyle(
+                                        color: banner.accentColor,
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w900,
+                                        height: 1.2,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      banner.subtitle,
+                                      style: TextStyle(
+                                        color: kText.withValues(alpha: 0.65),
+                                        fontSize: 12,
+                                        height: 1.5,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 14),
+                                  ],
+                                  // Button is always there unless it's a pure image
+                                  if (banner.bannerAsset == null)
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 16,
+                                        vertical: 8,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: banner.accentColor,
+                                        borderRadius: BorderRadius.circular(50),
+                                      ),
+                                      child: Text(
+                                        s.bannerShopNow,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ),
+                                ],
                               ),
                             ),
-                            const SizedBox(height: 8),
-                            Text(
-                              banner.subtitle,
-                              style: TextStyle(
-                                color: kText.withValues(alpha: 0.65),
-                                fontSize: 12,
-                                height: 1.5,
+                            if (banner.bannerAsset == null)
+                              Icon(
+                                Icons.local_offer_rounded,
+                                size: 80,
+                                color: banner.accentColor.withValues(alpha: 0.15),
                               ),
-                            ),
-                            const SizedBox(height: 14),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 8,
-                              ),
-                              decoration: BoxDecoration(
-                                color: banner.accentColor,
-                                borderRadius: BorderRadius.circular(50),
-                              ),
-                              child: Text(
-                                s.bannerShopNow,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ),
                           ],
                         ),
-                      ),
-                      Icon(
-                        Icons.local_offer_rounded,
-                        size: 80,
-                        color: banner.accentColor.withValues(alpha: 0.15),
                       ),
                     ],
                   ),
@@ -496,16 +510,21 @@ class _HomeAddressSheetState extends State<HomeAddressSheet> {
                   // Full Address View (Prominent / Current Default)
                   if (current != null) ...[
                     GestureDetector(
-                      onTap: () => setState(() => _selectedAddressId = current.id),
+                      onTap: () =>
+                          setState(() => _selectedAddressId = current.id),
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 200),
                         width: double.infinity,
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
-                          color: _selectedAddressId == current.id ? kPurpleFaint : Colors.white,
+                          color: _selectedAddressId == current.id
+                              ? kPurpleFaint
+                              : Colors.white,
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                            color: _selectedAddressId == current.id ? kPurple : kPurpleBorder,
+                            color: _selectedAddressId == current.id
+                                ? kPurple
+                                : kPurpleBorder,
                             width: _selectedAddressId == current.id ? 2 : 1.5,
                           ),
                         ),
@@ -517,7 +536,9 @@ class _HomeAddressSheetState extends State<HomeAddressSheet> {
                                 Icon(
                                   Icons.location_on_rounded,
                                   size: 20,
-                                  color: _selectedAddressId == current.id ? kPurple : kSubText,
+                                  color: _selectedAddressId == current.id
+                                      ? kPurple
+                                      : kSubText,
                                 ),
                                 const SizedBox(width: 8),
                                 Text(
@@ -525,12 +546,18 @@ class _HomeAddressSheetState extends State<HomeAddressSheet> {
                                   style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w800,
-                                    color: _selectedAddressId == current.id ? kPurple : kSubText,
+                                    color: _selectedAddressId == current.id
+                                        ? kPurple
+                                        : kSubText,
                                   ),
                                 ),
                                 const Spacer(),
                                 if (_selectedAddressId == current.id)
-                                  const Icon(Icons.check_circle_rounded, color: kPurple, size: 20),
+                                  const Icon(
+                                    Icons.check_circle_rounded,
+                                    color: kPurple,
+                                    size: 20,
+                                  ),
                               ],
                             ),
                             const SizedBox(height: 12),
@@ -569,14 +596,21 @@ class _HomeAddressSheetState extends State<HomeAddressSheet> {
                   ] else
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 20),
-                      child: Text(s.noAddress, style: const TextStyle(color: kSubText)),
+                      child: Text(
+                        s.noAddress,
+                        style: const TextStyle(color: kSubText),
+                      ),
                     ),
 
                   // Other addresses / Switching
                   StreamBuilder<List<AddressModel>>(
                     stream: _service.streamAddresses(),
                     builder: (ctx, snap) {
-                      final others = snap.data?.where((a) => a.id != current?.id).toList() ?? [];
+                      final others =
+                          snap.data
+                              ?.where((a) => a.id != current?.id)
+                              .toList() ??
+                          [];
                       if (others.isEmpty) return const SizedBox.shrink();
 
                       return Column(
@@ -597,25 +631,31 @@ class _HomeAddressSheetState extends State<HomeAddressSheet> {
                             return Padding(
                               padding: const EdgeInsets.only(bottom: 12),
                               child: InkWell(
-                                onTap: () => setState(() => _selectedAddressId = addr.id),
+                                onTap: () => setState(
+                                  () => _selectedAddressId = addr.id,
+                                ),
                                 borderRadius: BorderRadius.circular(16),
                                 child: AnimatedContainer(
                                   duration: const Duration(milliseconds: 200),
                                   padding: const EdgeInsets.all(16),
                                   decoration: BoxDecoration(
-                                    color: isSelected ? kPurpleFaint : Colors.white,
+                                    color: isSelected
+                                        ? kPurpleFaint
+                                        : Colors.white,
                                     borderRadius: BorderRadius.circular(16),
                                     border: Border.all(
-                                      color: isSelected ? kPurple : kPurpleBorder,
+                                      color: isSelected
+                                          ? kPurple
+                                          : kPurpleBorder,
                                       width: isSelected ? 2 : 1,
                                     ),
                                   ),
                                   child: Row(
                                     children: [
                                       Icon(
-                                        Icons.home_outlined, 
-                                        size: 18, 
-                                        color: isSelected ? kPurple : kSubText
+                                        Icons.home_outlined,
+                                        size: 18,
+                                        color: isSelected ? kPurple : kSubText,
                                       ),
                                       const SizedBox(width: 12),
                                       Expanded(
@@ -623,7 +663,9 @@ class _HomeAddressSheetState extends State<HomeAddressSheet> {
                                           '${addr.addressLine1}, ${addr.city}',
                                           style: TextStyle(
                                             fontSize: 14,
-                                            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                                            fontWeight: isSelected
+                                                ? FontWeight.w700
+                                                : FontWeight.w600,
                                             color: isSelected ? kPurple : kText,
                                           ),
                                           maxLines: 1,
@@ -631,7 +673,11 @@ class _HomeAddressSheetState extends State<HomeAddressSheet> {
                                         ),
                                       ),
                                       if (isSelected)
-                                        const Icon(Icons.check_circle_rounded, color: kPurple, size: 18)
+                                        const Icon(
+                                          Icons.check_circle_rounded,
+                                          color: kPurple,
+                                          size: 18,
+                                        )
                                       else
                                         const Icon(
                                           Icons.radio_button_unchecked_rounded,
@@ -660,17 +706,24 @@ class _HomeAddressSheetState extends State<HomeAddressSheet> {
             width: double.infinity,
             height: 52,
             child: ElevatedButton(
-              onPressed: _selectedAddressId == null ? null : () => _onConfirm(s),
+              onPressed: _selectedAddressId == null
+                  ? null
+                  : () => _onConfirm(s),
               style: ElevatedButton.styleFrom(
                 backgroundColor: kPurple,
                 foregroundColor: Colors.white,
                 elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
                 disabledBackgroundColor: kPurpleBorder.withValues(alpha: 0.5),
               ),
               child: Text(
                 s.okLabel,
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
             ),
           ),

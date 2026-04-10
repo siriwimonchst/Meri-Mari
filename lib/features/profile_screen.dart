@@ -11,8 +11,6 @@ import 'package:provider/provider.dart';
 import '../core/app_theme.dart';
 import '../providers/app_locale_provider.dart';
 import '../providers/favorites_provider.dart';
-import '../models/address_model.dart';
-import '../core/address_service.dart';
 import '../widgets/profile_widgets.dart';
 import 'account_settings_screen.dart';
 import 'notifications_screen.dart';
@@ -22,6 +20,10 @@ import 'orders.dart';
 import 'account_info_screen.dart';
 import 'change_password_screen.dart';
 import 'favorite_screen.dart';
+import 'address_screen.dart';
+import 'language_screen.dart';
+import 'shop_demo_screen.dart';
+import 'notification_settings_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -30,7 +32,6 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  final _addressService = AddressService();
 
   Future<void> _logout() async {
     context.read<FavoritesProvider>().clear();
@@ -43,114 +44,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Future<void> _showAddressForm({AddressModel? editing}) async {
-    final result = await showModalBottomSheet<AddressModel>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => ProfileAddressFormSheet(existing: editing),
-    );
-    if (result == null) return;
-    try {
-      if (editing == null) {
-        await _addressService.addAddress(result);
-      } else {
-        await _addressService.updateAddress(result);
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.toString().replaceFirst('Exception: ', '')),
-            backgroundColor: kErrorRed,
-          ),
-        );
-      }
-    }
-  }
 
-  Future<void> _deleteAddress(AddressModel address) async {
-    final s = context.read<AppLocaleProvider>().strings;
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(s.deleteAddressTitle),
-        content: Text(s.deleteAddressConfirm),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(s.cancelLabel),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: kErrorRedDark),
-            child: Text(s.deleteLabel),
-          ),
-        ],
-      ),
-    );
-    if (ok == true) await _addressService.deleteAddress(address.id);
-  }
-
-  void _showLanguagePicker(BuildContext context, AppLocaleProvider locale) {
-    final s = locale.strings;
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (_) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(4),
-              ),
-            ),
-            const SizedBox(height: 20),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                s.selectLanguage,
-                style: const TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w800,
-                  color: kText,
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            ProfileLanguageOption(
-              label: 'English UK',
-              selected: !locale.isThai,
-              onTap: () {
-                if (locale.isThai) locale.toggle();
-                Navigator.pop(context);
-              },
-            ),
-            const SizedBox(height: 10),
-            ProfileLanguageOption(
-              label: 'ภาษาไทย',
-              selected: locale.isThai,
-              onTap: () {
-                if (!locale.isThai) locale.toggle();
-                Navigator.pop(context);
-              },
-            ),
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -196,6 +90,45 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ),
                 actions: [
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const ShopDemoScreen(),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        height: 38,
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: Colors.grey.shade200, width: 1.5),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.storefront_outlined, color: kText, size: 18),
+                            const SizedBox(width: 6),
+                            Text(
+                              s.openShop,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: kText,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            const Icon(Icons.arrow_forward_ios_rounded, color: kText, size: 11),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
                   Padding(
                     padding: const EdgeInsets.only(right: 8),
                     child: Container(
@@ -410,6 +343,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                         ),
                       ),
+                      Divider(height: 1, color: Colors.grey.shade100),
                       ProfileMenuItem(
                         icon: Icons.favorite_outline_rounded,
                         label: s.favorites,
@@ -420,7 +354,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                         ),
                       ),
-
+                      Divider(height: 1, color: Colors.grey.shade100),
                       ProfileMenuItem(
                         icon: Icons.location_on_outlined,
                         label: s.myAddress,
@@ -448,10 +382,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         onTap: () => Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => const NotificationsScreen(),
+                            builder: (_) => const NotificationSettingsScreen(),
                           ),
                         ),
                       ),
+                      Divider(height: 1, color: Colors.grey.shade100),
                       ProfileMenuItem(
                         icon: Icons.lock_outline_rounded,
                         label: s.changePassword,
@@ -462,6 +397,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                         ),
                       ),
+                      Divider(height: 1, color: Colors.grey.shade100),
                       ProfileMenuItem(
                         icon: Icons.language_rounded,
                         label: s.language,
@@ -484,7 +420,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                           ],
                         ),
-                        onTap: () => _showLanguagePicker(context, locale),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const LanguageScreen()),
+                          );
+                        },
                       ),
 
                       const SizedBox(height: 24),
@@ -507,26 +448,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         label: s.helpCentre,
                         onTap: () {},
                       ),
+                      Divider(height: 1, color: Colors.grey.shade100),
                       ProfileMenuItem(
                         icon: Icons.gavel_rounded,
                         label: s.communityRules,
                         onTap: () {},
                       ),
+                      Divider(height: 1, color: Colors.grey.shade100),
                       ProfileMenuItem(
                         icon: Icons.policy_outlined,
                         label: s.policies,
                         onTap: () {},
                       ),
+                      Divider(height: 1, color: Colors.grey.shade100),
                       ProfileMenuItem(
                         icon: Icons.mail_outline_rounded,
                         label: s.contactUs,
                         onTap: () {},
                       ),
+                      Divider(height: 1, color: Colors.grey.shade100),
                       ProfileMenuItem(
                         icon: Icons.info_outline_rounded,
                         label: s.about,
                         onTap: () {},
                       ),
+                      Divider(height: 1, color: Colors.grey.shade100),
                       ProfileMenuItem(
                         icon: Icons.person_remove_outlined,
                         label: s.requestAccountDeletion,
@@ -661,54 +607,90 @@ class _ProfileScreenState extends State<ProfileScreen> {
       builder: (context) => AlertDialog(
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: Text(
-          s.logoutConfirmTitle,
-          style: const TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.w900,
-            color: kText,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        content: Padding(
+          padding: const EdgeInsets.only(top: 10),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                s.logoutConfirmTitle,
+                style: const TextStyle(
+                  fontSize: 19,
+                  fontWeight: FontWeight.w900,
+                  color: kText,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                s.logoutConfirmMsg,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 15,
+                  color: kText,
+                  height: 1.4,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
           ),
         ),
-        content: Text(
-          s.logoutConfirmMsg,
-          style: const TextStyle(
-            fontSize: 15,
-            color: Colors.black54,
-            height: 1.4,
-          ),
-        ),
-        actionsPadding: const EdgeInsets.fromLTRB(12, 0, 24, 24),
+        contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+        actionsPadding: EdgeInsets.zero,
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              s.cancelLabel,
-              style: const TextStyle(
-                color: Colors.grey,
-                fontWeight: FontWeight.w600,
-              ),
+          Container(
+            decoration: BoxDecoration(
+              border: Border(top: BorderSide(color: Colors.grey.shade200)),
             ),
-          ),
-          const SizedBox(width: 8),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: kPurple,
-              foregroundColor: Colors.white,
-              elevation: 4,
-              shadowColor: kPurple.withValues(alpha: 0.3),
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-            ),
-            onPressed: () {
-              Navigator.pop(context);
-              _logout();
-            },
-            child: Text(
-              s.logout,
-              style: const TextStyle(fontWeight: FontWeight.w800),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.only(
+                          bottomLeft: Radius.circular(16),
+                        ),
+                      ),
+                    ),
+                    child: Text(
+                      s.cancelLabel,
+                      style: const TextStyle(
+                        color: kText,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                ),
+                Container(width: 1, height: 50, color: Colors.grey.shade200),
+                Expanded(
+                  child: TextButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _logout();
+                    },
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.only(
+                          bottomRight: Radius.circular(16),
+                        ),
+                      ),
+                    ),
+                    child: Text(
+                      s.logout,
+                      style: const TextStyle(
+                        color: kPurple,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -717,17 +699,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _showAddressManager(BuildContext context, dynamic s) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => ProfileAddressManagerSheet(
-        addressService: _addressService,
-        onAdd: () => _showAddressForm(),
-        onEdit: (a) => _showAddressForm(editing: a),
-        onDelete: _deleteAddress,
-        onSetDefault: (id) => _addressService.setDefault(id),
-      ),
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const AddressScreen()),
     );
   }
 }

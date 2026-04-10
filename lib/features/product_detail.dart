@@ -72,7 +72,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
             Text(added ? s.addedToCart : s.alreadyInCart),
           ],
         ),
-        backgroundColor: added ? _kPurple : kWarningOrange,
+        backgroundColor: added ? _kPurple : kPurpleLight,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.all(16),

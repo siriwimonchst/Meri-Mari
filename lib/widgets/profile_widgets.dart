@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../core/app_theme.dart';
 import '../models/address_model.dart';
-import '../core/address_service.dart';
 import '../providers/app_locale_provider.dart';
 import '../providers/orders_provider.dart';
 
@@ -63,56 +62,6 @@ class ProfileMenuItem extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ProfileLanguageOption
-// ─────────────────────────────────────────────────────────────────────────────
-
-class ProfileLanguageOption extends StatelessWidget {
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const ProfileLanguageOption({
-    super.key,
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-        decoration: BoxDecoration(
-          color: selected ? kPurpleFaint : Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: selected ? kPurple : kPurpleBorder,
-            width: selected ? 2 : 1,
-          ),
-        ),
-        child: Row(
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-                color: selected ? kPurple : kText,
-              ),
-            ),
-            const Spacer(),
-            if (selected)
-              const Icon(Icons.check_circle_rounded, color: kPurple, size: 20),
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ProfileOrderSummary
@@ -288,150 +237,17 @@ class _StatusItem extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ProfileAddressManagerSheet
-// ─────────────────────────────────────────────────────────────────────────────
-
-class ProfileAddressManagerSheet extends StatelessWidget {
-  final AddressService addressService;
-  final VoidCallback onAdd;
-  final void Function(AddressModel) onEdit;
-  final void Function(AddressModel) onDelete;
-  final void Function(String) onSetDefault;
-
-  const ProfileAddressManagerSheet({
-    super.key,
-    required this.addressService,
-    required this.onAdd,
-    required this.onEdit,
-    required this.onDelete,
-    required this.onSetDefault,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-        left: 20,
-        right: 20,
-        top: 12,
-      ),
-      child: StreamBuilder<List<AddressModel>>(
-        stream: addressService.streamAddresses(),
-        builder: (ctx, snap) {
-          final addresses = snap.data ?? [];
-          final atMax = addresses.length >= AddressService.maxAddresses;
-          return Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Builder(
-                builder: (ctx) {
-                  final s = ctx.read<AppLocaleProvider>().strings;
-                  return Row(
-                    children: [
-                      Text(
-                        s.myAddressTitle,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                          color: kText,
-                        ),
-                      ),
-                      const Spacer(),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: kPurpleFaint,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          '${addresses.length}/${AddressService.maxAddresses}',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: kPurple,
-                          ),
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              ),
-              const SizedBox(height: 12),
-
-              if (addresses.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  child: Text(
-                    context.read<AppLocaleProvider>().strings.noAddress,
-                    style: TextStyle(color: Colors.grey.shade400),
-                  ),
-                )
-              else
-                ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: addresses.length,
-                  separatorBuilder: (_, __) =>
-                      Divider(height: 1, color: Colors.grey.shade100),
-                  itemBuilder: (_, i) => _AddressRow(
-                    address: addresses[i],
-                    onEdit: () => onEdit(addresses[i]),
-                    onDelete: () => onDelete(addresses[i]),
-                    onSetDefault: () => onSetDefault(addresses[i].id),
-                  ),
-                ),
-
-              if (!atMax)
-                TextButton.icon(
-                  onPressed: onAdd,
-                  icon: const Icon(Icons.add_location_alt_outlined, size: 18),
-                  label: Text(
-                    context.read<AppLocaleProvider>().strings.addAddress,
-                  ),
-                  style: TextButton.styleFrom(
-                    foregroundColor: kPurple,
-                    textStyle: const TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 // Internal: _AddressRow
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _AddressRow extends StatelessWidget {
+class AddressRow extends StatelessWidget {
   final AddressModel address;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
   final VoidCallback onSetDefault;
 
-  const _AddressRow({
+  const AddressRow({
+    super.key,
     required this.address,
     required this.onEdit,
     required this.onDelete,
@@ -520,25 +336,17 @@ class _AddressRow extends StatelessWidget {
                     final s = ctx.read<AppLocaleProvider>().strings;
                     return Row(
                       children: [
-                        _SmallBtn(
+                        SmallBtn(
                           label: s.editLabel,
                           color: kPurple,
                           onTap: onEdit,
                         ),
                         const SizedBox(width: 12),
-                        _SmallBtn(
+                        SmallBtn(
                           label: s.deleteLabel,
                           color: kErrorRed,
                           onTap: onDelete,
                         ),
-                        if (!address.isDefault) ...[
-                          const SizedBox(width: 12),
-                          _SmallBtn(
-                            label: s.setAsDefault,
-                            color: Colors.orange.shade700,
-                            onTap: onSetDefault,
-                          ),
-                        ],
                       ],
                     );
                   },
@@ -552,11 +360,11 @@ class _AddressRow extends StatelessWidget {
   }
 }
 
-class _SmallBtn extends StatelessWidget {
+class SmallBtn extends StatelessWidget {
   final String label;
   final Color color;
   final VoidCallback onTap;
-  const _SmallBtn({
+  const SmallBtn({
     required this.label,
     required this.color,
     required this.onTap,

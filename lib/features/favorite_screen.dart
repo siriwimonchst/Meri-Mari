@@ -3,10 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/favorites_provider.dart';
 import '../providers/app_locale_provider.dart';
-import '../providers/cart_provider.dart';
+import '../models/item_model.dart';
 import '../widgets/product_card.dart';
 import '../core/app_theme.dart';
-import '../l10n/app_strings.dart';
 import 'product_detail.dart';
 import 'cart_screen.dart';
 
@@ -19,9 +18,24 @@ class FavoriteScreen extends StatefulWidget {
 
 class _FavoriteScreenState extends State<FavoriteScreen> {
   bool _isEditMode = false;
+  bool _isSearching = false;
+  final TextEditingController _searchController = TextEditingController();
   final Set<String> _selectedIds = {};
   Set<String> _selectedTags = {};
   String? _selectedStatus; // 'available', 'sold', or null
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _toggleSearch() {
+    setState(() {
+      _isSearching = !_isSearching;
+      if (!_isSearching) _searchController.clear();
+    });
+  }
 
   void _toggleEditMode() {
     setState(() {
@@ -69,82 +83,106 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
     final items = fav.favoriteItems;
     final canPop = Navigator.of(context).canPop();
 
-    // Filter items locally based on tags and status
-    final filteredItems = items.where((item) {
+    // Filter items locally based on tags, status, AND search search query
+    final filteredItems = items.where((ItemModel item) {
+      // Search filter
+      final query = _searchController.text.toLowerCase();
+      final matchSearch = query.isEmpty || item.name.toLowerCase().contains(query);
+      
       // Tag filter
-      final matchTags = _selectedTags.isEmpty || item.tags.any((t) => _selectedTags.contains(t));
+      final matchTags = _selectedTags.isEmpty || 
+          item.tags.any((t) => _selectedTags.contains(s.normalizeTag(t)));
+      
       // Status filter
       bool matchStatus = true;
       if (_selectedStatus == 'available') matchStatus = !item.isSold;
       if (_selectedStatus == 'sold') matchStatus = item.isSold;
       
-      return matchTags && matchStatus;
+      return matchSearch && matchTags && matchStatus;
     }).toList();
 
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        leadingWidth: canPop ? 50 : 0,
-        leading: canPop
-            ? Center(
-                child: Padding(
-                  padding: const EdgeInsets.only(left: 8),
-                  child: IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_new_rounded, color: kText, size: 20),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ),
-              )
-            : null,
         backgroundColor: Colors.white,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         toolbarHeight: 60,
         centerTitle: false,
-        titleSpacing: canPop ? 0 : 20,
-        title: Text(
-          s.myFavorites,
-          style: const TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w900,
-            color: kText,
-          ),
-        ),
-        actions: [
-          _AppBarIcon(
-            icon: Icons.search_rounded,
-            onTap: () {
-              showSearch(
-                context: context,
-                delegate: _CartSearchDelegate(
-                  cart: context.read<CartProvider>(),
-                  s: s,
+        titleSpacing: _isSearching ? 0 : (canPop ? 0 : 20),
+        leading: _isSearching || canPop
+            ? Center(
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 8),
+                  child: IconButton(
+                    icon: const Icon(Icons.arrow_back_ios_new_rounded, color: kText, size: 20),
+                    onPressed: _isSearching ? _toggleSearch : () => Navigator.pop(context),
+                  ),
                 ),
-              );
-            },
-          ),
-          const SizedBox(width: 8),
-          _AppBarIcon(
-            icon: Icons.shopping_bag_outlined,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const CartScreen()),
+              )
+            : null,
+        title: _isSearching
+            ? Container(
+                height: 40,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: TextField(
+                  controller: _searchController,
+                  autofocus: true,
+                  onChanged: (_) => setState(() {}),
+                  style: const TextStyle(fontSize: 15, color: kText),
+                  cursorColor: kPurple,
+                  decoration: InputDecoration(
+                    hintText: s.searchHint,
+                    hintStyle: TextStyle(color: Colors.grey.shade500, fontWeight: FontWeight.w400),
+                    prefixIcon: const Icon(Icons.search_rounded, color: kPurple, size: 20),
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                  ),
+                ),
+              )
+            : Text(
+                s.myFavorites,
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: kText),
+              ),
+        actions: [
+          if (_isSearching)
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: TextButton(
+                onPressed: _toggleSearch,
+                child: Text(
+                  locale.isThai ? 'ยกเลิก' : 'Cancel',
+                  style: const TextStyle(color: kPurple, fontWeight: FontWeight.w700, fontSize: 16),
+                ),
+              ),
+            )
+          else ...[
+            _AppBarIcon(
+              icon: Icons.search_rounded,
+              onTap: _toggleSearch,
             ),
-          ),
-          const SizedBox(width: 8),
-          TextButton(
-            onPressed: _toggleEditMode,
-            child: Text(
-              _isEditMode ? s.done : s.edit,
-              style: const TextStyle(
-                color: kPurple,
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
+            const SizedBox(width: 8),
+            _AppBarIcon(
+              icon: Icons.shopping_bag_outlined,
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const CartScreen()),
               ),
             ),
-          ),
-          const SizedBox(width: 12),
+            const SizedBox(width: 8),
+            TextButton(
+              onPressed: _toggleEditMode,
+              child: Text(
+                _isEditMode ? s.done : s.edit,
+                style: const TextStyle(color: kPurple, fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+            ),
+            const SizedBox(width: 12),
+          ],
         ],
       ),
       body: Column(
@@ -630,77 +668,3 @@ class _EmptyFavorites extends StatelessWidget {
   }
 }
 
-class _CartSearchDelegate extends SearchDelegate {
-  final CartProvider cart;
-  final AppStrings s;
-
-  _CartSearchDelegate({required this.cart, required this.s});
-
-  @override
-  String? get searchFieldLabel => s.searchHint;
-
-  @override
-  List<Widget>? buildActions(BuildContext context) {
-    return [
-      if (query.isNotEmpty)
-        IconButton(
-          icon: const Icon(Icons.clear_rounded),
-          onPressed: () => query = '',
-        ),
-    ];
-  }
-
-  @override
-  Widget? buildLeading(BuildContext context) {
-    return IconButton(
-      icon: const Icon(Icons.arrow_back_ios_new_rounded),
-      onPressed: () => close(context, null),
-    );
-  }
-
-  @override
-  Widget buildResults(BuildContext context) {
-    final results = cart.items
-        .where((ci) => ci.item.name.toLowerCase().contains(query.toLowerCase()))
-        .toList();
-
-    if (results.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.search_off_rounded, size: 64, color: Colors.grey),
-            const SizedBox(height: 16),
-            Text(s.noProducts, style: const TextStyle(fontSize: 16, color: Colors.grey)),
-          ],
-        ),
-      );
-    }
-
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: results.length,
-      itemBuilder: (context, index) {
-        final ci = results[index];
-        return ListTile(
-          leading: ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: Image.network(ci.item.imageUrl, width: 50, height: 50, fit: BoxFit.cover),
-          ),
-          title: Text(ci.item.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-          subtitle: Text('฿${ci.item.price.toStringAsFixed(0)}', style: const TextStyle(color: kPurple)),
-          onTap: () {
-            close(context, null);
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => ProductDetailScreen(item: ci.item)),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  @override
-  Widget buildSuggestions(BuildContext context) => buildResults(context);
-}

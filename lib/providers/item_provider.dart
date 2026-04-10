@@ -16,6 +16,7 @@ class ItemProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
   Set<String> get selectedTags => _selectedTags;
+  List<ItemModel> get allItems => _items;
 
   List<ItemModel> get filteredItems {
     return _items.where((item) {

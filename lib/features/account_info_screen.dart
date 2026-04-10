@@ -33,7 +33,7 @@ class AccountInfoScreen extends StatelessWidget {
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: kPurple),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: kText, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(

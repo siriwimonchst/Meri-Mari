@@ -170,7 +170,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
             backgroundColor: Colors.white,
             elevation: 0,
             leading: IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new_rounded, color: _kPurple),
+              icon: const Icon(Icons.arrow_back_ios_new_rounded, color: _kText, size: 20),
               onPressed: () => Navigator.pop(context),
             ),
             title: Text(s.editProfile, style: const TextStyle(fontWeight: FontWeight.w800, color: _kText)),
@@ -222,7 +222,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                                       onPressed: _deletePicture,
                                       icon: const Icon(Icons.delete_outline_rounded, size: 18),
                                       label: Text(s.isThai ? 'ลบ' : 'Delete'),
-                                      style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
+                                      style: OutlinedButton.styleFrom(foregroundColor: _kText),
                                     ),
                                   ],
                                 ],

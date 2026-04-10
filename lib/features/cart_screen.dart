@@ -5,6 +5,7 @@ import '../providers/cart_provider.dart';
 import '../providers/app_locale_provider.dart';
 import '../core/app_theme.dart';
 import 'checkout_screen.dart';
+import 'product_detail.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 
 // Design token aliases — source of truth is lib/core/app_theme.dart
@@ -215,64 +216,86 @@ class _CartItemTile extends StatelessWidget {
             ),
             const SizedBox(width: 12),
 
-            // Product image
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: SizedBox(
-                width: 72,
-                height: 72,
-                child: Image.network(
-                  item.imageUrl,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
-                    color: _kPurpleFaint,
-                    child: const Icon(
-                      Icons.image_not_supported,
-                      color: _kPurpleBorder,
+            // Navigation to detail
+            Expanded(
+              child: InkWell(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ProductDetailScreen(item: item),
                     ),
+                  );
+                },
+                borderRadius: BorderRadius.circular(12),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    children: [
+                      // Product image
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: SizedBox(
+                          width: 72,
+                          height: 72,
+                          child: Image.network(
+                            item.imageUrl,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Container(
+                              color: _kPurpleFaint,
+                              child: const Icon(
+                                Icons.image_not_supported,
+                                color: _kPurpleBorder,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+
+                      // Name + collection + price
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              item.name,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: _kText,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              item.collection.isNotEmpty
+                                  ? item.collection
+                                  : 'Meri-Mari',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey.shade500,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              '฿${item.price.toStringAsFixed(0)}',
+                              style: const TextStyle(
+                                color: _kPurple,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
             ),
-            const SizedBox(width: 12),
-
-            // Name + collection + price
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    item.name,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: _kText,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    item.collection.isNotEmpty ? item.collection : 'Meri-Mari',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey.shade500,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    '฿${item.price.toStringAsFixed(0)}',
-                    style: const TextStyle(
-                      color: _kPurple,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 16,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
           ],
         ),
       ),

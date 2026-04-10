@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_locale_provider.dart';
 import 'home.dart';
-import 'orders.dart';
 import 'favorite_screen.dart';
 import 'profile_screen.dart';
 
@@ -19,7 +18,6 @@ class _MainScreenState extends State<MainScreen> {
 
   final List<Widget> _screens = const [
     HomeScreen(),
-    OrdersScreen(),
     FavoriteScreen(),
     ProfileScreen(),
   ];
@@ -29,7 +27,6 @@ class _MainScreenState extends State<MainScreen> {
     final s = context.watch<AppLocaleProvider>().strings;
     final navItems = [
       _NavData(icon: Icons.home_rounded, label: s.home),
-      _NavData(icon: Icons.inventory_2_outlined, label: s.navOrders),
       _NavData(icon: Icons.favorite_rounded, label: s.favorites),
       _NavData(icon: Icons.person_rounded, label: s.navProfile),
     ];

@@ -40,6 +40,14 @@ class AppStrings {
   String get wrongCurrentPassword =>
       isThai ? 'รหัสผ่านปัจจุบันไม่ถูกต้อง' : 'Wrong current password';
   String get save => isThai ? 'บันทึก' : 'Save';
+  String get forgotPasswordTitle => isThai ? 'ลืมรหัสผ่าน' : 'Forgot Password';
+  String get forgotPasswordDemoMsg => isThai
+      ? 'เนื่องจากแอปพลิเคชันเวอร์ชันนี้เป็นเวอร์ชันทดลองใช้งาน (Demo) ฟีเจอร์นี้กำลังอยู่ระหว่างการพัฒนา ขออภัยในความไม่สะดวกครับ'
+      : 'As this is a Demo version, the password recovery feature is currently under development. We apologize for any inconvenience.';
+  String get enterEmailHint => isThai
+      ? 'กรุณากรอกอีเมลที่ลงทะเบียนไว้'
+      : 'Please enter your registered email';
+  String get sendResetLink => isThai ? 'ส่งลิงก์กู้คืน' : 'Send Reset Link';
 
   // ── Home ──────────────────────────────────────────────────────────────────
   String get searchHint => isThai ? 'ค้นหาสินค้า...' : 'Search products...';
@@ -56,7 +64,12 @@ class AppStrings {
   String get clearFilter => isThai ? 'ล้างตัวกรอง' : 'Clear';
   String get applyFilter => isThai ? 'ใช้งาน' : 'Apply';
   String get productsLabel => isThai ? 'สินค้า' : 'Products';
-  String get noLocation => isThai ? 'ยังไม่มีที่อยู่' : 'No address set';
+  String get noLocation => isThai ? 'ที่อยู่ปัจจุบัน' : 'Location';
+  String get recommendedKeywords =>
+      isThai ? 'คำค้นหาแนะนำ' : 'Recommended Labels';
+  String get searchRecommendationTitle =>
+      isThai ? 'หรือคุณต้องการค้นหาสิ่งนี้' : 'Or you might like this';
+  String get backLabel => isThai ? 'ย้อนกลับ' : 'Back';
 
   // ── Tags ──────────────────────────────────────────────────────────────────
   String get tagNoDefect => isThai ? 'ไม่มีตำหนิ' : 'No Defect';
@@ -96,6 +109,40 @@ class AppStrings {
     }
   }
 
+  /// Normalizes a raw tag string into one of the standard filter keys.
+  String normalizeTag(String tag) {
+    switch (tag.toLowerCase()) {
+      case 'brand new':
+      case 'brandnew':
+      case 'มือ 1':
+      case 'brand_new':
+        return 'brand_new';
+      case 'pre-owned':
+      case 'preowned':
+      case 'มือ 2':
+      case 'pre_owned':
+        return 'pre_owned';
+      case 'no defect':
+      case 'nodefect':
+      case 'ไม่มีตำหนิ':
+      case 'no_defect':
+        return 'no_defect';
+      case 'misb':
+        return 'misb';
+      case 'check card':
+      case 'checkcard':
+      case 'เช็คการ์ด':
+      case 'check_card':
+        return 'check_card';
+      case 'limited':
+        return 'limited';
+      case 'secret':
+        return 'secret';
+      default:
+        return tag.toLowerCase().replaceAll(' ', '_');
+    }
+  }
+
   /// Predefined tag list used in filter dialogs.
   /// Each entry has 'key' (raw value) and 'label' (localised display).
   List<Map<String, String>> get predefinedTags => [
@@ -119,7 +166,9 @@ class AppStrings {
       isThai ? 'สินค้านี้อยู่ในตะกร้าแล้ว' : 'Already in cart';
   String get shipping => isThai ? 'ค่าส่ง' : 'Shipping';
   String get details => isThai ? 'รายละเอียด' : 'Details';
-  String get productDesc => isThai ? 'รายละเอียดสินค้า' : 'Product description';
+  String get productDesc => isThai
+      ? 'รับประกันของแท้ 100% จัดส่งผ่านระบบคุ้มครองการซื้อขาย เงินของคุณจะถูกโอนไปยังผู้ขายหลังจากที่คุณยืนยันการรับสินค้าแล้วเท่านั้น'
+      : '100% authentic. Shipped via Escrow your payment is released to the seller only after you confirm receipt.';
 
   // ── Cart ──────────────────────────────────────────────────────────────────
   String get cart => isThai ? 'ตะกร้าของฉัน' : 'My Cart';
@@ -260,6 +309,9 @@ class AppStrings {
   String get deleteAddressTitle => isThai ? 'ลบที่อยู่' : 'Delete address';
   String get deleteAddressConfirm =>
       isThai ? 'ต้องการลบที่อยู่นี้ใช่หรือไม่?' : 'Remove this address?';
+  String get confirmSetDefault => isThai
+      ? 'ต้องการตั้งที่อยู่นี้เป็นที่อยู่หลักใช่หรือไม่?'
+      : 'Set this as your primary address?';
   String get cancelLabel => isThai ? 'ยกเลิก' : 'Cancel';
   String get deleteLabel => isThai ? 'ลบ' : 'Delete';
   String get editLabel => isThai ? 'แก้ไข' : 'Edit';
@@ -280,6 +332,12 @@ class AppStrings {
       isThai ? 'บัญชีและการตั้งค่า' : 'Account & Settings';
   String get selectLanguage =>
       isThai ? 'เลือกภาษา / Select Language' : 'Select Language';
+  String get defaultLanguageSection =>
+      isThai ? 'ภาษาเริ่มต้น' : 'System Default';
+  String get otherLanguagesSection => isThai ? 'ภาษาอื่นๆ' : 'Other Languages';
+  String get otherLanguagesHint => isThai
+      ? 'ภาษาเหล่านี้ได้รับการแปลโดย ผู้ให้บริการอื่นๆ'
+      : 'These languages are translated by other providers';
   String get addressLine1 => isThai ? 'ที่อยู่บรรทัดที่ 1' : 'Address line 1';
   String get addressLine2 =>
       isThai ? 'ที่อยู่บรรทัดที่ 2 (ไม่บังคับ)' : 'Address line 2 (optional)';
@@ -312,4 +370,18 @@ class AppStrings {
   String get explore => isThai ? 'ค้นหา' : 'Explore';
   String get navProfile => isThai ? 'โปรไฟล์' : 'Profile';
   String get navOrders => isThai ? 'ออเดอร์' : 'Orders';
+
+  // ── Notification Settings ─────────────────────────────────────────────────
+  String get notificationSettings => isThai ? 'ตั้งค่าการแจ้งเตือน' : 'Notification Settings';
+  String get pushNotifications => isThai ? 'การแจ้งเตือนในแอป' : 'Push Notifications';
+  String get orderUpdates => isThai ? 'อัปเดตสถานะคำสั่งซื้อ' : 'Order Updates';
+  String get promotions => isThai ? 'โปรโมชั่นและข้อเสนอ' : 'Promotions & Offers';
+  String get chatMessages => isThai ? 'ข้อความแชท' : 'Chat Messages';
+
+  // ── Shop Demo ─────────────────────────────────────────────────────────────
+  String get openShop => isThai ? 'เปิดร้านค้า' : 'Open Shop';
+  String get myShop => isThai ? 'ร้านค้าของฉัน' : 'My Shop';
+  String get shopDemoMsg => isThai
+      ? 'เนื่องจากแอปพลิเคชันนี้ยังเป็นเวอร์ชันทดลองใช้งาน (Demo)\nฟังก์ชันร้านค้าจึงกำลังอยู่ระหว่างการพัฒนา\nขออภัยในความไม่สะดวกเป็นอย่างยิ่งค่ะ'
+      : 'As this application is currently a Demo version,\nthe shop feature is under development.\nWe apologize for any inconvenience caused.';
 }

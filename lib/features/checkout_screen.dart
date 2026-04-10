@@ -6,6 +6,7 @@ import '../providers/app_locale_provider.dart';
 import '../providers/address_provider.dart';
 import '../core/app_theme.dart';
 import 'qr_payment_screen.dart';
+import 'address_screen.dart';
 
 // Design token aliases — source of truth is lib/core/app_theme.dart
 const _kPurple       = kPurple;
@@ -70,49 +71,58 @@ class CheckoutScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // ── Delivery Address ────────────────────────────────────────
-            _SectionCard(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Icon(
-                    Icons.location_on_rounded,
-                    color: _kPurple,
-                    size: 22,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          s.deliveryAddress,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w800,
-                            color: _kText,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          addressProvider.locationSummary.isNotEmpty
-                              ? addressProvider.locationSummary
-                              : s.noAddress,
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: addressProvider.locationSummary.isNotEmpty
-                                ? const Color(0xFF444444)
-                                : Colors.grey.shade400,
-                          ),
-                        ),
-                      ],
+            InkWell(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AddressScreen()),
+                );
+              },
+              borderRadius: BorderRadius.circular(16),
+              child: _SectionCard(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(
+                      Icons.location_on_rounded,
+                      color: _kPurple,
+                      size: 22,
                     ),
-                  ),
-                  const Icon(
-                    Icons.chevron_right_rounded,
-                    color: Colors.grey,
-                    size: 20,
-                  ),
-                ],
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            s.deliveryAddress,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w800,
+                              color: _kText,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            addressProvider.locationSummary.isNotEmpty
+                                ? addressProvider.locationSummary
+                                : s.noAddress,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: addressProvider.locationSummary.isNotEmpty
+                                  ? const Color(0xFF444444)
+                                  : Colors.grey.shade400,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(
+                      Icons.chevron_right_rounded,
+                      color: Colors.grey,
+                      size: 20,
+                    ),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 12),
