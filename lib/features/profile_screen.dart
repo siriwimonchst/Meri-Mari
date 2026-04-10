@@ -92,45 +92,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 actions: [
                   Padding(
                     padding: const EdgeInsets.only(right: 8),
-                    child: GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const ShopDemoScreen(),
-                          ),
-                        );
-                      },
-                      child: Container(
-                        height: 38,
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: Colors.grey.shade200, width: 1.5),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.storefront_outlined, color: kText, size: 18),
-                            const SizedBox(width: 6),
-                            Text(
-                              s.openShop,
-                              style: const TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                                color: kText,
-                              ),
-                            ),
-                            const SizedBox(width: 4),
-                            const Icon(Icons.arrow_forward_ios_rounded, color: kText, size: 11),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.only(right: 8),
                     child: Container(
                       width: 42,
                       height: 42,
@@ -304,6 +265,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ),
 
+                      const SizedBox(height: 24),
+                      // ── Open Shop Bar ───────────────────────────────────────────
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const ShopDemoScreen(),
+                            ),
+                          );
+                        },
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+                          decoration: BoxDecoration(
+                            color: kPurpleFaint,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: kPurpleBorder, width: 1.5),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.storefront_outlined, color: kPurple, size: 24),
+                              const SizedBox(width: 12),
+                              Text(
+                                s.openShop,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w800,
+                                  color: kPurple,
+                                ),
+                              ),
+                              const Spacer(),
+                              const Icon(Icons.arrow_forward_ios_rounded, color: kPurple, size: 16),
+                            ],
+                          ),
+                        ),
+                      ),
                       const SizedBox(height: 24),
                       ProfileOrderSummary(
                         onTabTap: (tabIndex) {
