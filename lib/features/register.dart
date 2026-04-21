@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
-import '../providers/favorites_provider.dart';
 import '../providers/app_locale_provider.dart';
 import '../core/app_theme.dart';
 import 'auth_widgets.dart';
-import 'main_screen.dart';
 import 'auth.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -36,12 +34,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     if (name.isEmpty || email.isEmpty || pass.isEmpty) {
       final s = context.read<AppLocaleProvider>().strings;
-      _showError(s.isThai ? 'กรุณากรอกข้อมูลให้ครบถ้วน' : 'Please fill in all fields');
+      _showError(s.fillAllFields);
       return;
     }
     if (pass.length < 6) {
       final s = context.read<AppLocaleProvider>().strings;
-      _showError(s.isThai ? 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร' : 'Password must be at least 6 characters');
+      _showError(s.passTooShort);
       return;
     }
 
@@ -55,19 +53,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
       if (!mounted) return;
       await _afterSignUp();
     } on FirebaseAuthException catch (e) {
+      final s = context.read<AppLocaleProvider>().strings;
       String msg;
       switch (e.code) {
         case 'email-already-in-use':
-          msg = 'อีเมลนี้ถูกใช้งานแล้ว';
+          msg = s.emailAlreadyInUse;
           break;
         case 'invalid-email':
-          msg = 'รูปแบบอีเมลไม่ถูกต้อง';
+          msg = s.invalidEmail;
           break;
         case 'weak-password':
-          msg = 'รหัสผ่านง่ายเกินไป';
+          msg = s.weakPassword;
           break;
         default:
-          msg = 'เกิดข้อผิดพลาด: ${e.message}';
+          msg = '${s.generalError}: ${e.message}';
       }
       _showError(msg);
     } finally {
@@ -76,12 +75,31 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> _afterSignUp() async {
-    await context.read<FavoritesProvider>().loadFavorites();
+    final s = context.read<AppLocaleProvider>().strings;
+    
+    // Sign out to force manual login
+    await FirebaseAuth.instance.signOut();
+    
+    _showSuccess(s.registrationSuccess);
+    
     if (!mounted) return;
     Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(builder: (_) => const MainScreen()),
+      MaterialPageRoute(builder: (_) => const AuthScreen()),
       (_) => false,
+    );
+  }
+
+  void _showSuccess(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: kPurpleLight,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 2),
+      ),
     );
   }
 
@@ -89,7 +107,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(msg),
-        backgroundColor: const Color(0xFFC62828),
+        backgroundColor: kPurple,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.all(16),
@@ -127,7 +145,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: Colors.white.withValues(alpha: kDecorBorderAlpha),
+                        color: Colors.white.withOpacity(kDecorBorderAlpha),
                         width: 1,
                       ),
                     ),
@@ -142,7 +160,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: Colors.white.withValues(alpha: kDecorBorderAlpha),
+                        color: Colors.white.withOpacity(kDecorBorderAlpha),
                         width: 1,
                       ),
                     ),
@@ -157,7 +175,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: Colors.white.withValues(alpha: kDecorBorderAlpha),
+                        color: Colors.white.withOpacity(kDecorBorderAlpha),
                         width: 1,
                       ),
                     ),

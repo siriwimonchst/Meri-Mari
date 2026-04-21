@@ -6,7 +6,9 @@ import '../providers/app_locale_provider.dart';
 import '../core/app_theme.dart';
 import 'checkout_screen.dart';
 import 'product_detail.dart';
+import '../core/utils.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
+
 
 // Design token aliases — source of truth is lib/core/app_theme.dart
 const _kPurple = kPurple;
@@ -196,12 +198,12 @@ class _CartItemTile extends StatelessWidget {
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected ? _kPurple.withValues(alpha: 0.4) : _kPurpleBorder,
+            color: isSelected ? _kPurple.withOpacity(0.4) : _kPurpleBorder,
             width: 1.5,
           ),
           boxShadow: [
             BoxShadow(
-              color: _kPurpleLight.withValues(alpha: 0.07),
+              color: _kPurpleLight.withOpacity(0.07),
               blurRadius: 10,
               offset: const Offset(0, 3),
             ),
@@ -281,8 +283,9 @@ class _CartItemTile extends StatelessWidget {
                             ),
                             const SizedBox(height: 6),
                             Text(
-                              '฿${item.price.toStringAsFixed(0)}',
+                              PriceFormatter.formatWithCurrency(item.price),
                               style: const TextStyle(
+
                                 color: _kPurple,
                                 fontWeight: FontWeight.w800,
                                 fontSize: 16,
@@ -322,7 +325,7 @@ class _OrderSummaryPanel extends StatelessWidget {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: _kPurpleLight.withValues(alpha: 0.12),
+            color: _kPurpleLight.withOpacity(0.12),
             blurRadius: 20,
             offset: const Offset(0, -6),
           ),
@@ -343,14 +346,16 @@ class _OrderSummaryPanel extends StatelessWidget {
             const SizedBox(height: 12),
             _SummaryRow(
               label: s.subtotal,
-              value: '฿${selectedSubtotal.toStringAsFixed(0)}',
+              value: PriceFormatter.formatWithCurrency(selectedSubtotal),
             ),
+
             const SizedBox(height: 6),
             _SummaryRow(
               label: s.shippingCost,
               value: shippingCost == 0
                   ? (s.isThai ? 'ฟรี' : 'Free')
-                  : '฿${shippingCost.toStringAsFixed(0)}',
+                  : PriceFormatter.formatWithCurrency(shippingCost),
+
             ),
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 10),
@@ -368,8 +373,9 @@ class _OrderSummaryPanel extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  '฿${totalPayment.toStringAsFixed(0)}',
+                  PriceFormatter.formatWithCurrency(totalPayment),
                   style: const TextStyle(
+
                     fontSize: 22,
                     fontWeight: FontWeight.w900,
                     color: _kPurple,

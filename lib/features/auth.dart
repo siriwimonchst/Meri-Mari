@@ -9,6 +9,8 @@ import 'auth_widgets.dart';
 import 'main_screen.dart';
 import 'register.dart';
 import 'forgot_password_screen.dart';
+import '../l10n/app_strings.dart';
+
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -52,7 +54,7 @@ class _AuthScreenState extends State<AuthScreen> {
     final pass = _passCtrl.text.trim();
     if (email.isEmpty || pass.isEmpty) {
       final s = context.read<AppLocaleProvider>().strings;
-      _showError(s.isThai ? 'กรุณากรอก Email และ Password' : 'Please enter email and password');
+      _showError(s.fillAllFields);
       return;
     }
     setState(() => _loading = true);
@@ -72,13 +74,18 @@ class _AuthScreenState extends State<AuthScreen> {
       if (!mounted) return;
       await _afterLogin();
     } on FirebaseAuthException catch (e) {
-      _showError(_authError(e.code));
+      if (!mounted) return;
+      final s = context.read<AppLocaleProvider>().strings;
+      _showError(_authError(e.code, s));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
   Future<void> _afterLogin() async {
+    final s = context.read<AppLocaleProvider>().strings;
+    _showSuccess(s.loginSuccess);
+
     await context.read<FavoritesProvider>().loadFavorites();
     if (!mounted) return;
     Navigator.pushAndRemoveUntil(
@@ -88,19 +95,33 @@ class _AuthScreenState extends State<AuthScreen> {
     );
   }
 
-  String _authError(String code) {
+  void _showSuccess(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: kPurpleLight,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  String _authError(String code, AppStrings s) {
     switch (code) {
       case 'user-not-found':
       case 'invalid-credential':
-        return 'Email หรือ Password ไม่ถูกต้อง';
+        return s.invalidEmailOrPass;
       case 'wrong-password':
-        return 'รหัสผ่านไม่ถูกต้อง';
+        return s.wrongPassword;
+
       case 'invalid-email':
-        return 'รูปแบบ Email ไม่ถูกต้อง';
+        return s.invalidEmail;
       case 'too-many-requests':
-        return 'ลองเข้าสู่ระบบบ่อยเกินไป';
+        return s.tooManyAttempts;
       default:
-        return 'เกิดข้อผิดพลาด';
+        return s.generalError;
     }
   }
 
@@ -108,7 +129,7 @@ class _AuthScreenState extends State<AuthScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(msg),
-        backgroundColor: const Color(0xFFC62828),
+        backgroundColor: kPurple,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.all(16),
@@ -146,7 +167,7 @@ class _AuthScreenState extends State<AuthScreen> {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: Colors.white.withValues(alpha: kDecorBorderAlpha),
+                        color: Colors.white.withOpacity(kDecorBorderAlpha),
                         width: 1,
                       ),
                     ),
@@ -161,7 +182,7 @@ class _AuthScreenState extends State<AuthScreen> {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: Colors.white.withValues(alpha: kDecorBorderAlpha),
+                        color: Colors.white.withOpacity(kDecorBorderAlpha),
                         width: 1,
                       ),
                     ),
@@ -176,7 +197,7 @@ class _AuthScreenState extends State<AuthScreen> {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: Colors.white.withValues(alpha: kDecorBorderAlpha),
+                        color: Colors.white.withOpacity(kDecorBorderAlpha),
                         width: 1,
                       ),
                     ),
@@ -208,8 +229,9 @@ class _AuthScreenState extends State<AuthScreen> {
                   children: [
                     // Title
                     Text(
-                      s.isThai ? 'ยินดีต้อนรับกลับ!' : 'Welcome Back!',
+                      s.welcomeBack,
                       style: const TextStyle(
+
                         fontSize: 32,
                         fontWeight: FontWeight.w800,
                         color: Color(0xFF1A1A2E),
@@ -219,10 +241,9 @@ class _AuthScreenState extends State<AuthScreen> {
 
                     // Catchy Phrase
                     Text(
-                      s.isThai
-                          ? 'พร้อมค้นหาสินค้าที่คุณชอบแล้วหรือยัง?\nการช้อปปิ้งของคุณเริ่มต้นที่นี่'
-                          : 'Ready to find your favorite items?\nYour shopping journey starts here.',
+                      s.authReadyToShop,
                       textAlign: TextAlign.center,
+
                       style: const TextStyle(
                         fontSize: 14,
                         color: Color(0xFF757575),
@@ -234,8 +255,9 @@ class _AuthScreenState extends State<AuthScreen> {
                     // Email field
                     AuthInputField(
                       controller: _emailCtrl,
-                      hint: s.isThai ? 'กรอกอีเมล' : 'Enter email',
+                      hint: s.enterEmail,
                       icon: Icons.email_outlined,
+
                       keyboardType: TextInputType.emailAddress,
                     ),
                     const SizedBox(height: 16),
@@ -295,7 +317,7 @@ class _AuthScreenState extends State<AuthScreen> {
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                s.isThai ? 'จดจำฉัน' : 'Remember me',
+                                s.rememberMe,
                                 style: const TextStyle(
                                   fontSize: 13,
                                   color: Color(0xFF424242),

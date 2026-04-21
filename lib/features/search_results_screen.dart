@@ -100,7 +100,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
                             });
                           },
                           style: TextButton.styleFrom(
-                            foregroundColor: Colors.red.shade400,
+                            foregroundColor: Colors.black,
                             textStyle: const TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
@@ -249,6 +249,10 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
                     contentPadding: const EdgeInsets.symmetric(
                       vertical: 12,
                       horizontal: 16,
+                    ),
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.search_rounded, color: _kPurple, size: 20),
+                      onPressed: _submitSearch,
                     ),
                     border: InputBorder.none,
                   ),

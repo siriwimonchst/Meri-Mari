@@ -9,7 +9,10 @@ import 'search_results_screen.dart';
 import 'product_detail.dart';
 
 class SearchScreen extends StatefulWidget {
-  const SearchScreen({super.key});
+  final VoidCallback? onBack;
+  final bool hideBackButton;
+  const SearchScreen({super.key, this.onBack, this.hideBackButton = false});
+
 
   @override
   State<SearchScreen> createState() => _SearchScreenState();
@@ -21,13 +24,16 @@ class _SearchScreenState extends State<SearchScreen> {
   
   List<String> _recommendedKeywords = [];
   List<dynamic> _recommendedItems = [];
+  bool _hasGenerated = false;
+
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _generateRecommendations();
-      _focusNode.requestFocus();
+      // Only request focus if we want auto-pop keyboard, user asked to click first
+      // _focusNode.requestFocus(); 
     });
   }
 
@@ -82,7 +88,9 @@ class _SearchScreenState extends State<SearchScreen> {
     setState(() {
       _recommendedKeywords = keywordList.take(6).toList();
       _recommendedItems = itemList.take(4).toList();
+      _hasGenerated = true;
     });
+
   }
 
   void _submitSearch(String query) {
@@ -105,6 +113,18 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   Widget build(BuildContext context) {
     final s = context.watch<AppLocaleProvider>().strings;
+    final itemProvider = context.watch<ItemProvider>();
+    final canPop = Navigator.canPop(context);
+
+    // If data just arrived from Firebase and we haven't generated recommendations yet, do it now.
+    if (!_hasGenerated && itemProvider.allItems.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && !_hasGenerated) {
+          _generateRecommendations();
+        }
+      });
+    }
+
     
     return Scaffold(
       backgroundColor: Colors.white,
@@ -121,7 +141,7 @@ class _SearchScreenState extends State<SearchScreen> {
             decoration: BoxDecoration(
               color: kPurpleFaint,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: kPurpleBorder.withValues(alpha: 0.5)),
+              border: Border.all(color: kPurpleBorder.withOpacity(0.5)),
             ),
             child: TextField(
               controller: _controller,
@@ -131,17 +151,38 @@ class _SearchScreenState extends State<SearchScreen> {
               style: const TextStyle(fontSize: 15, color: kText),
               decoration: InputDecoration(
                 hintText: s.searchHint,
-                hintStyle: TextStyle(color: kSubText.withValues(alpha: 0.7), fontSize: 14),
-                prefixIcon: IconButton(
-                  icon: const Icon(Icons.arrow_back_ios_new_rounded, color: kPurple, size: 20),
-                  onPressed: () => Navigator.pop(context),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
+                hintStyle: TextStyle(color: kSubText.withOpacity(0.7), fontSize: 14),
+                prefixIcon: (widget.hideBackButton)
+                  ? null
+                  : (canPop || widget.onBack != null) 
+                    ? IconButton(
+                      icon: const Icon(Icons.arrow_back_ios_new_rounded, color: kPurple, size: 20),
+                      onPressed: () {
+                        if (canPop) {
+                          Navigator.pop(context);
+                        } else if (widget.onBack != null) {
+                          widget.onBack!();
+                        }
+                      },
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    )
+                    : const Padding(
+                        padding: EdgeInsets.only(left: 12),
+                        child: Icon(Icons.search_rounded, color: kPurple, size: 22),
+                      ),
+
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.search_rounded, color: kPurple, size: 22),
+                  onPressed: () => _submitSearch(_controller.text),
                 ),
-                suffixIcon: const Icon(Icons.search_rounded, color: kPurple, size: 22),
                 border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                contentPadding: EdgeInsets.symmetric(
+                  vertical: 12,
+                  horizontal: widget.hideBackButton ? 16 : 0,
+                ),
               ),
+
             ),
           ),
         ),
@@ -201,7 +242,7 @@ class _SearchScreenState extends State<SearchScreen> {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Text(
-                  s.searchRecommendationTitle, // Or do you want to search for this?
+                  s.searchRecommendationTitle,
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w800,

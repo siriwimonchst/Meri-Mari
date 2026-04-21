@@ -5,8 +5,11 @@ import '../providers/cart_provider.dart';
 import '../providers/app_locale_provider.dart';
 import '../providers/address_provider.dart';
 import '../core/app_theme.dart';
-import 'qr_payment_screen.dart';
 import 'address_screen.dart';
+import 'qr_payment_screen.dart';
+import '../core/utils.dart';
+
+
 
 // Design token aliases — source of truth is lib/core/app_theme.dart
 const _kPurple       = kPurple;
@@ -199,8 +202,9 @@ class CheckoutScreen extends StatelessWidget {
                                   ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  '฿${ci.item.price.toStringAsFixed(0)}',
+                                  PriceFormatter.formatWithCurrency(ci.item.price),
                                   style: const TextStyle(
+
                                     fontSize: 14,
                                     fontWeight: FontWeight.w800,
                                     color: _kPurple,
@@ -219,17 +223,16 @@ class CheckoutScreen extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        s.isThai
-                            ? 'สินค้ารวม ${selectedItems.length} ชิ้น'
-                            : '${selectedItems.length} item(s)',
+                        s.itemsCount(selectedItems.length),
                         style: TextStyle(
                           fontSize: 13,
                           color: Colors.grey.shade600,
                         ),
                       ),
                       Text(
-                        '฿${subtotal.toStringAsFixed(0)}',
+                        PriceFormatter.formatWithCurrency(subtotal),
                         style: const TextStyle(
+
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
                           color: _kText,
@@ -320,15 +323,17 @@ class CheckoutScreen extends StatelessWidget {
               child: Column(
                 children: [
                   _SummaryRow(
-                    label: s.isThai ? 'รวมการสั่งซื้อ' : 'Subtotal',
-                    value: '฿${subtotal.toStringAsFixed(0)}',
+                    label: s.checkoutSubtotal,
+                    value: PriceFormatter.formatWithCurrency(subtotal),
                   ),
+
                   const SizedBox(height: 8),
                   _SummaryRow(
                     label: s.shippingCost,
                     value: shipping == 0
                         ? (s.isThai ? 'ฟรี' : 'Free')
-                        : '฿${shipping.toStringAsFixed(0)}',
+                        : PriceFormatter.formatWithCurrency(shipping),
+
                   ),
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 10),
@@ -338,7 +343,7 @@ class CheckoutScreen extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        s.isThai ? 'ยอดชำระเงินทั้งหมด' : 'Total Payment',
+                        s.totalPaymentLabel,
                         style: const TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w800,
@@ -346,8 +351,9 @@ class CheckoutScreen extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        '฿${total.toStringAsFixed(0)}',
+                        PriceFormatter.formatWithCurrency(total),
                         style: const TextStyle(
+
                           fontSize: 18,
                           fontWeight: FontWeight.w900,
                           color: _kPurple,
@@ -376,7 +382,7 @@ class CheckoutScreen extends StatelessWidget {
           color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: _kPurpleLight.withValues(alpha: 0.15),
+              color: _kPurpleLight.withOpacity(0.15),
               blurRadius: 20,
               offset: const Offset(0, -6),
             ),
@@ -389,12 +395,13 @@ class CheckoutScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  s.isThai ? 'รวมยอดสั่งซื้อ' : 'Total',
+                  s.totalLabel,
                   style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
                 ),
                 Text(
-                  '฿${total.toStringAsFixed(0)}',
+                  PriceFormatter.formatWithCurrency(total),
                   style: const TextStyle(
+
                     fontSize: 20,
                     fontWeight: FontWeight.w900,
                     color: _kPurple,
@@ -424,7 +431,7 @@ class CheckoutScreen extends StatelessWidget {
                                 const Icon(Icons.location_off_rounded, color: _kPurpleLight, size: 52),
                                 const SizedBox(height: 16),
                                 Text(
-                                  s.isThai ? 'ไม่มีที่อยู่จัดส่ง' : 'No Delivery Address',
+                                  s.noDeliveryAddressTitle,
                                   style: const TextStyle(
                                     fontSize: 19,
                                     fontWeight: FontWeight.w900,
@@ -433,9 +440,7 @@ class CheckoutScreen extends StatelessWidget {
                                 ),
                                 const SizedBox(height: 12),
                                 Text(
-                                  s.isThai
-                                      ? 'กรุณาเพิ่มที่อยู่จัดส่งในหน้าโปรไฟล์ หรือกดเลือกที่อยู่ก่อนทำการสั่งซื้อ'
-                                      : 'Please add a delivery address or select one before placing your order.',
+                                  s.noDeliveryAddressMsg,
                                   textAlign: TextAlign.center,
                                   style: const TextStyle(
                                     fontSize: 14,
@@ -471,7 +476,7 @@ class CheckoutScreen extends StatelessWidget {
                                         ),
                                       ),
                                       child: Text(
-                                        s.isThai ? 'ตกลง' : 'OK',
+                                        s.okLabel,
                                         style: const TextStyle(
                                           color: _kPurple,
                                           fontWeight: FontWeight.w800,
@@ -542,7 +547,7 @@ class _SectionCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFFAB9DC4).withValues(alpha: 0.07),
+            color: const Color(0xFFAB9DC4).withOpacity(0.07),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),

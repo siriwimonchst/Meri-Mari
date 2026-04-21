@@ -85,7 +85,7 @@ class ProfileOrderSummary extends StatelessWidget {
         border: Border.all(color: kPurpleBorder, width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: kPurple.withValues(alpha: 0.05),
+            color: kPurple.withOpacity(0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -137,7 +137,7 @@ class ProfileOrderSummary extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   _StatusItem(
-                    icon: Icons.account_balance_wallet_outlined,
+                    icon: Icons.receipt_long_outlined,
                     label: s.tabToPay,
                     badgeCount: orders.ordersForTab(OrderTab.toPay).length,
                     onTap: () => onTabTap(1),
@@ -193,7 +193,7 @@ class _StatusItem extends StatelessWidget {
           Stack(
             clipBehavior: Clip.none,
             children: [
-              Icon(icon, size: 28, color: kText.withValues(alpha: 0.8)),
+              Icon(icon, size: 28, color: kText.withOpacity(0.8)),
               if (badgeCount > 0)
                 Positioned(
                   top: -6,

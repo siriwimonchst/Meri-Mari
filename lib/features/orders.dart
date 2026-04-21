@@ -4,10 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_locale_provider.dart';
 import '../providers/orders_provider.dart';
+import '../providers/notifications_provider.dart';
 import '../l10n/app_strings.dart';
 import 'qr_payment_screen.dart';
 import 'order_detail_screen.dart';
 import '../core/app_theme.dart';
+import '../core/utils.dart';
+
 
 const _kPurple      = kPurple;
 const _kPurpleLight = kPurpleLight;
@@ -215,7 +218,8 @@ class _ToPayCardState extends State<_ToPayCard> {
       if (r == Duration.zero) {
         _timer?.cancel();
         // Auto-cancel expired order
-        context.read<OrdersProvider>().cancelOrder(widget.order.id);
+        final np = context.read<NotificationsProvider>();
+        context.read<OrdersProvider>().cancelOrder(widget.order.id, np);
       }
     });
   }
@@ -246,7 +250,7 @@ class _ToPayCardState extends State<_ToPayCard> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                s.isThai ? 'ยกเลิกออเดอร์?' : 'Cancel Order?',
+                s.cancelOrderConfirmPrompt,
                 style: const TextStyle(
                   fontSize: 19,
                   fontWeight: FontWeight.w900,
@@ -255,9 +259,7 @@ class _ToPayCardState extends State<_ToPayCard> {
               ),
               const SizedBox(height: 12),
               Text(
-                s.isThai
-                    ? 'หากยกเลิก สินค้าจะกลับมาให้ผู้อื่นสามารถสั่งซื้อได้อีกครั้ง'
-                    : 'The item will be available for others to purchase again.',
+                s.cancelOrderMsg,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 15,
@@ -304,7 +306,8 @@ class _ToPayCardState extends State<_ToPayCard> {
                   child: TextButton(
                     onPressed: () {
                       Navigator.pop(dlg);
-                      context.read<OrdersProvider>().cancelOrder(orderId);
+                      final np = context.read<NotificationsProvider>();
+                      context.read<OrdersProvider>().cancelOrder(orderId, np);
                     },
                     style: TextButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
@@ -353,7 +356,7 @@ class _ToPayCardState extends State<_ToPayCard> {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF7B5EA7).withValues(alpha: 0.07),
+              color: const Color(0xFF7B5EA7).withOpacity(0.07),
               blurRadius: 14,
               offset: const Offset(0, 5),
             ),
@@ -468,8 +471,9 @@ class _ToPayCardState extends State<_ToPayCard> {
                                       MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
-                                      '฿${item.price.toStringAsFixed(0)}',
+                                      PriceFormatter.formatWithCurrency(item.price),
                                       style: const TextStyle(
+
                                         fontSize: 14,
                                         fontWeight: FontWeight.w800,
                                         color: _kPurple,
@@ -503,14 +507,13 @@ class _ToPayCardState extends State<_ToPayCard> {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 Text(
-                  s.isThai
-                      ? 'สินค้ารวม ${order.items.length} รายการ: '
-                      : '${order.items.length} item(s): ',
+                  s.itemsCount(order.items.length),
                   style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
                 ),
                 Text(
-                  '฿${order.total.toStringAsFixed(0)}',
+                  PriceFormatter.formatWithCurrency(order.total),
                   style: const TextStyle(
+
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
                     color: _kText,
@@ -520,34 +523,11 @@ class _ToPayCardState extends State<_ToPayCard> {
             ),
           ),
 
+
           const Divider(height: 1, color: Color(0xFFF0EAF8)),
 
-          // ── Slip verification banner (shown when slip uploaded) ───────
-          if (order.hasSlip)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                decoration: BoxDecoration(
-                  color: _kPurpleFaint,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: _kPurpleLight.withValues(alpha: 0.2)),
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  s.waitingVerification, // "รอตรวจสอบสลิปชำระเงิน"
-                  style: const TextStyle(
-                    color: _kPurple,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 13,
-                  ),
-                ),
-              ),
-            ),
+          // Countdown timer + action buttons (always visible)
 
-          // ── Countdown timer + action buttons (hidden when slip uploaded)
-          if (!order.hasSlip) ...[
             // Countdown timer row
             InkWell(
               onTap: expired
@@ -577,9 +557,7 @@ class _ToPayCardState extends State<_ToPayCard> {
                       Expanded(
                         child: expired
                             ? Text(
-                                s.isThai
-                                    ? 'หมดเวลาชำระเงิน — ออเดอร์ถูกยกเลิก'
-                                    : 'Payment expired — order cancelled',
+                                s.paymentExpired,
                                 style: TextStyle(
                                   fontSize: 13,
                                   color: Colors.red.shade400,
@@ -603,9 +581,7 @@ class _ToPayCardState extends State<_ToPayCard> {
                                       ),
                                     ),
                                     TextSpan(
-                                      text: s.isThai
-                                          ? ' ผ่าน QR พร้อมเพย์'
-                                          : ' via QR PromptPay',
+                                      text: s.viaPromptPay,
                                       style: const TextStyle(color: Colors.black54),
                                     ),
                                   ],
@@ -690,8 +666,8 @@ class _ToPayCardState extends State<_ToPayCard> {
                   ],
                 ),
               ),
-          ],
-        ],
+            ],
+
       ),
     ),
   );
@@ -724,13 +700,13 @@ class _GenericOrderCard extends StatelessWidget {
   String _statusLabel(OrderTab tab, AppStrings s) {
     switch (tab) {
       case OrderTab.toPay:
-        return s.isThai ? 'รอผู้ซื้อชำระเงิน' : 'Pending Payment';
+        return s.pendingPayment;
       case OrderTab.toShip:
-        return s.isThai ? 'ผู้ขายกำลังจัดส่ง' : 'Shipping';
+        return s.shippingStatus;
       case OrderTab.toReceive:
-        return s.isThai ? 'รอรับสินค้า' : 'To Receive';
+        return s.toReceiveStatus;
       case OrderTab.toRate:
-        return s.isThai ? 'สำเร็จ' : 'Success';
+        return s.successStatus;
     }
   }
 
@@ -767,7 +743,7 @@ class _GenericOrderCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF7B5EA7).withValues(alpha: 0.07),
+              color: const Color(0xFF7B5EA7).withOpacity(0.07),
               blurRadius: 14,
               offset: const Offset(0, 5),
             ),
@@ -782,7 +758,7 @@ class _GenericOrderCard extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'รหัส: ${order.id}',
+                    s.orderIdLabel(order.id),
                     style: TextStyle(
                       color: Colors.grey.shade500,
                       fontSize: 13,
@@ -795,7 +771,7 @@ class _GenericOrderCard extends StatelessWidget {
                       vertical: 5,
                     ),
                     decoration: BoxDecoration(
-                      color: statusColor.withValues(alpha: 0.1),
+                      color: statusColor.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
@@ -849,8 +825,9 @@ class _GenericOrderCard extends StatelessWidget {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            '฿${order.total.toStringAsFixed(0)}',
+                            PriceFormatter.formatWithCurrency(order.total),
                             style: const TextStyle(
+
                               color: _kPurple,
                               fontWeight: FontWeight.w800,
                               fontSize: 15,

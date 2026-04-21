@@ -5,6 +5,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'notifications_provider.dart';
+import '../models/notification_model.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Data models
@@ -189,7 +191,12 @@ class OrdersProvider extends ChangeNotifier {
   Future<void> placeOrders({
     required List<Map<String, dynamic>> items,
     required OrderTab tab,
+    required NotificationsProvider np,
     bool hasSlip = false,
+    String? customTitleTh,
+    String? customTitleEn,
+    String? customMsgTh,
+    String? customMsgEn,
   }) async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
 
@@ -229,6 +236,16 @@ class OrdersProvider extends ChangeNotifier {
     }
     notifyListeners();
 
+    // Trigger notification
+    np.addNotification(
+      titleTh: customTitleTh ?? 'สั่งซื้อสินค้าสำเร็จ!',
+      titleEn: customTitleEn ?? 'Order Placed!',
+      messageTh: customMsgTh ?? 'สร้างออเดอร์หมายเลข ${order.id} เรียบร้อยแล้ว ยอดชำระ ${order.total} บาท',
+      messageEn: customMsgEn ?? 'Order ID ${order.id} has been created. Total amount is ${order.total} THB',
+      type: NotificationType.order,
+      orderId: order.id,
+    );
+
     // Persist to Firestore (best-effort — local state is source of truth in session).
     if (uid != null) {
       try {
@@ -240,16 +257,26 @@ class OrdersProvider extends ChangeNotifier {
   }
 
   /// Mark that a payment slip has been uploaded for [orderId].
-  Future<void> markSlipUploaded(String orderId) async {
+  Future<void> markSlipUploaded(String orderId, NotificationsProvider np) async {
     final idx = _orders.indexWhere((o) => o.id == orderId);
     if (idx == -1) return;
     _orders[idx].hasSlip = true;
     notifyListeners();
     _updateField(orderId, {'hasSlip': true});
+
+    // Trigger notification (Mock verification)
+    np.addNotification(
+      titleTh: 'อัปเดตสถานะการชำระเงิน',
+      titleEn: 'Payment Status Update',
+      messageTh: 'ได้รับสลิปการโอนเงินของออเดอร์หมายเลข $orderId แล้ว ระบบกำลังตรวจสอบข้อมูล',
+      messageEn: 'Transfer slip for Order ID $orderId received. System is verifying.',
+      type: NotificationType.order,
+      orderId: orderId,
+    );
   }
 
   /// Cancel and remove an order.
-  Future<void> cancelOrder(String orderId) async {
+  Future<void> cancelOrder(String orderId, NotificationsProvider? np) async {
     final idx = _orders.indexWhere((o) => o.id == orderId);
     if (idx == -1) return;
 
@@ -264,6 +291,16 @@ class OrdersProvider extends ChangeNotifier {
       }
     }
     notifyListeners();
+
+    // Trigger notification
+    np?.addNotification(
+      titleTh: 'ยกเลิกออเดอร์สำเร็จ',
+      titleEn: 'Order Cancelled',
+      messageTh: 'ออเดอร์หมายเลข $orderId ของคุณถูกยกเลิกเรียบร้อยแล้ว',
+      messageEn: 'Your order ID $orderId has been cancelled.',
+      type: NotificationType.order,
+      orderId: orderId,
+    );
 
     try {
       await _ordersRef().doc(orderId).delete();

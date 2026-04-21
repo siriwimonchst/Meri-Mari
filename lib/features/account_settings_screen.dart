@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/app_locale_provider.dart';
 import '../core/app_theme.dart';
 
@@ -68,26 +69,137 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       if (!mounted) return;
 
       final s = context.read<AppLocaleProvider>().strings;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(s.isThai ? 'บันทึกข้อมูลสำเร็จ' : 'Profile updated successfully'),
-          backgroundColor: kPurpleLight,
-        ),
-      );
+      _showSuccess(s.changesSaved);
       Navigator.pop(context);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-        );
+        final s = context.read<AppLocaleProvider>().strings;
+        _showError('${s.generalError}: $e');
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
+  void _showSuccess(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: kPurpleLight,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  void _showError(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: kPurple,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+      ),
+    );
+  }
+
+  Future<bool> _showPermissionDialog() async {
+    final s = context.read<AppLocaleProvider>().strings;
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        content: Padding(
+          padding: const EdgeInsets.only(top: 10),
+          child: Text(
+            s.photoPermissionMsg,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 15,
+              color: kText,
+              height: 1.5,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+        contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+        actionsPadding: EdgeInsets.zero,
+        actions: [
+          Container(
+            decoration: BoxDecoration(
+              border: Border(top: BorderSide(color: Colors.grey.shade200)),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextButton(
+                    onPressed: () => Navigator.pop(dialogContext, false),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.only(
+                          bottomLeft: Radius.circular(16),
+                        ),
+                      ),
+                    ),
+                    child: Text(
+                      s.laterLabel,
+                      style: const TextStyle(
+                        color: kText,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                ),
+                Container(width: 1, height: 50, color: Colors.grey.shade200),
+                Expanded(
+                  child: TextButton(
+                    onPressed: () => Navigator.pop(dialogContext, true),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.only(
+                          bottomRight: Radius.circular(16),
+                        ),
+                      ),
+                    ),
+                    child: Text(
+                      s.allowLabel,
+                      style: const TextStyle(
+                        color: kPurple,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
+  }
+
   Future<void> _uploadPicture() async {
     if (_user == null) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    final hasAllowed = prefs.getBool('has_allowed_photo_access') ?? false;
+
+    if (!hasAllowed) {
+      final allowed = await _showPermissionDialog();
+      if (!allowed) return;
+      await prefs.setBool('has_allowed_photo_access', true);
+    }
+
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(
       source: ImageSource.gallery,
@@ -107,23 +219,19 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
           .doc(_user!.uid)
           .set({'photoUrl': dataUrl}, SetOptions(merge: true));
 
-      try { await _user!.updatePhotoURL(dataUrl); } catch (_) {}
+      try {
+        await _user!.updatePhotoURL(dataUrl);
+      } catch (_) {}
       await _user!.reload();
 
       if (mounted) {
         final s = context.read<AppLocaleProvider>().strings;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(s.isThai ? 'อัปโหลดสำเร็จ' : 'Upload successful'),
-            backgroundColor: kPurpleLight,
-          ),
-        );
+        _showSuccess(s.isThai ? 'อัปโหลดสำเร็จ' : 'Upload successful');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-        );
+        final strings = context.read<AppLocaleProvider>().strings;
+        _showError('${strings.generalError}: $e');
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -142,9 +250,8 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       await _user!.reload();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-        );
+        final strings = context.read<AppLocaleProvider>().strings;
+        _showError('${strings.generalError}: $e');
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);

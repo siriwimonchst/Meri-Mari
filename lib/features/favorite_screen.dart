@@ -9,6 +9,7 @@ import '../widgets/product_card.dart';
 import '../core/app_theme.dart';
 import 'product_detail.dart';
 import 'cart_screen.dart';
+import '../providers/orders_provider.dart';
 
 class FavoriteScreen extends StatefulWidget {
   const FavoriteScreen({super.key});
@@ -80,6 +81,7 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
   Widget build(BuildContext context) {
     final fav = context.watch<FavoritesProvider>();
     final cartProvider = context.watch<CartProvider>();
+    final ordersProvider = context.watch<OrdersProvider>();
     final locale = context.watch<AppLocaleProvider>();
     final s = locale.strings;
     final items = fav.favoriteItems;
@@ -97,8 +99,9 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
       
       // Status filter
       bool matchStatus = true;
-      if (_selectedStatus == 'available') matchStatus = !item.isSold;
-      if (_selectedStatus == 'sold') matchStatus = item.isSold;
+      final isUnavailable = item.isSold || ordersProvider.isOrdered(item.id);
+      if (_selectedStatus == 'available') matchStatus = !isUnavailable;
+      if (_selectedStatus == 'sold') matchStatus = isUnavailable;
       
       return matchSearch && matchTags && matchStatus;
     }).toList();
@@ -397,7 +400,7 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
                     onPressed: () => setModalState(() => tempTags = {}),
                     child: Text(
                       s.clearFilter ?? 'Clear',
-                      style: const TextStyle(color: kPurpleLight, fontWeight: FontWeight.w600),
+                      style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600),
                     ),
                   ),
                 ],
@@ -511,7 +514,7 @@ class _FilterChip extends StatelessWidget {
           ),
           boxShadow: selected ? [
             BoxShadow(
-              color: kPurple.withValues(alpha: 0.2),
+              color: kPurple.withOpacity(0.2),
               blurRadius: 8,
               offset: const Offset(0, 4),
             )
@@ -530,7 +533,7 @@ class _FilterChip extends StatelessWidget {
               child: Text(
                 label,
                 style: TextStyle(
-                  color: selected ? Colors.white : kText.withValues(alpha: 0.8),
+                  color: selected ? Colors.white : kText.withOpacity(0.8),
                   fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
                   fontSize: 13,
                 ),

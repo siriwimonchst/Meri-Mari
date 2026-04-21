@@ -131,10 +131,15 @@ class AccountInfoScreen extends StatelessWidget {
                 IconButton(
                   onPressed: () {
                     Clipboard.setData(ClipboardData(text: value));
+                    final s = context.read<AppLocaleProvider>().strings;
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Copied to clipboard'),
-                        duration: Duration(seconds: 1),
+                      SnackBar(
+                        content: Text(s.copiedLabel),
+                        backgroundColor: kPurpleLight,
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        margin: const EdgeInsets.all(16),
+                        duration: const Duration(seconds: 1),
                       ),
                     );
                   },

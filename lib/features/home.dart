@@ -10,6 +10,7 @@ import '../providers/item_provider.dart';
 import '../providers/cart_provider.dart';
 import '../providers/app_locale_provider.dart';
 import '../providers/address_provider.dart';
+import '../providers/notifications_provider.dart';
 import '../core/app_theme.dart';
 import '../widgets/home_widgets.dart';
 import '../widgets/product_card.dart';
@@ -102,7 +103,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: Text(
                           s.clearFilter,
                           style: const TextStyle(
-                            color: kPurpleLight,
+                            color: Colors.black,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -215,6 +216,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final cartProvider = context.watch<CartProvider>();
     final locale = context.watch<AppLocaleProvider>();
     final addressProvider = context.watch<AddressProvider>();
+    final notificationsProvider = context.watch<NotificationsProvider>();
     final s = locale.strings;
     final hasActiveFilters = itemProvider.selectedTags.isNotEmpty;
 
@@ -272,19 +274,47 @@ class _HomeScreenState extends State<HomeScreen> {
                     color: kPurpleFaint,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: IconButton(
-                    icon: const Icon(
-                      Icons.notifications_none_rounded,
-                      color: kPurple,
-                      size: 20,
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        IconButton(
+                          icon: const Icon(
+                            Icons.notifications_none_rounded,
+                            color: kPurple,
+                            size: 20,
+                          ),
+                          onPressed: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const NotificationsScreen(),
+                            ),
+                          ),
+                        ),
+                        if (notificationsProvider.unreadCount > 0)
+                          Positioned(
+                            top: 4,
+                            right: 4,
+                            child: Container(
+                              width: 14,
+                              height: 14,
+                              decoration: const BoxDecoration(
+                                color: kPurple,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Center(
+                                child: Text(
+                                  '${notificationsProvider.unreadCount}',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 8,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
-                    onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const NotificationsScreen(),
-                      ),
-                    ),
-                  ),
                 ),
               ),
               // Cart

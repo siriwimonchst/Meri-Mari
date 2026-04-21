@@ -5,9 +5,14 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_locale_provider.dart';
 import '../providers/orders_provider.dart';
+import '../providers/notifications_provider.dart';
 import '../providers/address_provider.dart';
 import 'qr_payment_screen.dart';
+import 'help_center_screen.dart';
+import 'contact_seller_screen.dart';
 import '../core/app_theme.dart';
+import '../core/utils.dart';
+
 
 class OrderDetailScreen extends StatefulWidget {
   final AppOrder order;
@@ -32,7 +37,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         setState(() => _remaining = r);
         if (r == Duration.zero) {
           _timer?.cancel();
-          context.read<OrdersProvider>().cancelOrder(widget.order.id);
+          final np = context.read<NotificationsProvider>();
+          context.read<OrdersProvider>().cancelOrder(widget.order.id, np);
           Navigator.pop(context);
         }
       });
@@ -97,10 +103,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      order.hasSlip
-                          ? s.waitingVerification
-                          : '${s.payWithin} ${_fmt(_remaining)}',
+                      '${s.payWithin} ${_fmt(_remaining)}',
                       style: const TextStyle(
+
                         color: Colors.white,
                         fontSize: 18,
                         fontWeight: FontWeight.w900,
@@ -117,10 +122,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            order.hasSlip
-                                ? s.sellerVerificationMsg
-                                : s.payViaPromptPay,
+                            s.payViaPromptPay,
                             style: const TextStyle(
+
                               color: Colors.white70,
                               fontSize: 13,
                             ),
@@ -262,12 +266,13 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                                       MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
-                                      '฿${item.price.toStringAsFixed(0)}',
+                                      PriceFormatter.formatWithCurrency(item.price),
                                       style: const TextStyle(
                                         color: _kPurple,
                                         fontWeight: FontWeight.w800,
                                       ),
                                     ),
+
                                     Text(
                                       'x${item.quantity}',
                                       style: const TextStyle(
@@ -292,13 +297,14 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                         style: const TextStyle(color: Colors.grey),
                       ),
                       Text(
-                        '฿${order.total.toStringAsFixed(0)}',
+                        PriceFormatter.formatWithCurrency(order.total),
                         style: const TextStyle(
                           fontWeight: FontWeight.w900,
                           fontSize: 16,
                           color: _kPurple,
                         ),
                       ),
+
                     ],
                   ),
                 ],
@@ -317,9 +323,24 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                   _ServiceTile(
                     icon: Icons.chat_bubble_outline,
                     title: s.contactSeller,
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const ContactSellerScreen(),
+                      ),
+                    ),
                   ),
                   const Divider(height: 1, indent: 16, endIndent: 16),
-                  _ServiceTile(icon: Icons.help_outline, title: s.helpCenter),
+                  _ServiceTile(
+                    icon: Icons.help_outline,
+                    title: s.helpCenter,
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const HelpCenterScreen(),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -339,9 +360,16 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                     value: order.id,
                     onCopy: () {
                       Clipboard.setData(ClipboardData(text: order.id));
-                      ScaffoldMessenger.of(
-                        context,
-                      ).showSnackBar(SnackBar(content: Text(s.copiedLabel)));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(s.copiedLabel),
+                          backgroundColor: kPurpleLight,
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          margin: const EdgeInsets.all(16),
+                          duration: const Duration(seconds: 1),
+                        ),
+                      );
                     },
                   ),
                   const SizedBox(height: 12),
@@ -377,7 +405,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         side: BorderSide(
-                          color: kErrorRedDark.withValues(alpha: 0.4),
+                          color: kErrorRedDark.withOpacity(0.4),
                         ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -437,7 +465,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 class _ServiceTile extends StatelessWidget {
   final IconData icon;
   final String title;
-  const _ServiceTile({required this.icon, required this.title});
+  final VoidCallback? onTap;
+  const _ServiceTile({required this.icon, required this.title, this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -448,7 +477,7 @@ class _ServiceTile extends StatelessWidget {
         style: const TextStyle(fontSize: 14, color: Color(0xFF2D264B)),
       ),
       trailing: const Icon(Icons.chevron_right, color: Colors.grey, size: 20),
-      onTap: () {},
+      onTap: onTap,
     );
   }
 }

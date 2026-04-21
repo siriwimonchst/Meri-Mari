@@ -1,15 +1,16 @@
 import 'dart:typed_data';
-import 'package:flutter/foundation.dart' show kIsWeb;
+
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-import 'dart:io' as io;
 import '../providers/app_locale_provider.dart';
 import '../providers/cart_provider.dart';
 import '../core/app_theme.dart';
 import '../core/slip_upload_service.dart';
 import 'orders.dart';
 import '../providers/orders_provider.dart';
+import '../providers/notifications_provider.dart';
+import '../core/utils.dart';
+
 
 // Design token aliases — source of truth is lib/core/app_theme.dart
 const _kPurple       = kPurple;
@@ -35,54 +36,33 @@ class QrPaymentScreen extends StatefulWidget {
 }
 
 class _QrPaymentScreenState extends State<QrPaymentScreen> {
-  io.File? _slipImage;
+  String? _activeOrderId;
   Uint8List? _webImageBytes;
   bool _uploading = false;
   bool _uploaded  = false;
   double _uploadProgress = 0;
   String? _uploadError;
 
-  // ── Slip upload using real Firebase Storage ─────────────────────────────
-  // ignore: unused_element
-  Future<void> _pickSlip() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(
-      source: ImageSource.gallery,
-      maxWidth: 1000,
-      maxHeight: 1000,
-      imageQuality: 50,
-    );
-    
-    if (pickedFile == null) return;
-    
-    final bytes = await pickedFile.readAsBytes();
-    final s = context.read<AppLocaleProvider>().strings;
+  @override
+  void initState() {
+    super.initState();
+    _activeOrderId = widget.orderId;
+  }
 
-    // ── 1. Determine orderId (create order first if this is a new checkout) ──
-    String? activeOrderId = widget.orderId;
-    if (activeOrderId == null) {
-      // Place the order now so we have an ID to attach the slip to
-      await context.read<OrdersProvider>().placeOrders(
-        items: widget.selectedItems
-            .map((ci) => {
-                  'itemId':   ci.item.id as String,
-                  'name':     ci.item.name as String,
-                  'price':    ci.item.price as double,
-                  'imageUrl': ci.item.imageUrl as String,
-                  'qty':      ci.quantity as int,
-                })
-            .toList(),
-        tab: OrderTab.toPay,
-        hasSlip: false, // will be updated after upload
-      );
-      // The provider stores orders in order of insertion; last == newest
-      final ordersProvider = context.read<OrdersProvider>();
-      activeOrderId = ordersProvider.orders.isNotEmpty
-          ? ordersProvider.orders.last.id
-          : null;
-      if (!mounted) return;
-      context.read<CartProvider>().clear();
-    }
+  // ── Slip upload using real Firebase Storage ─────────────────────────────
+  Future<void> _pickSlip() async {
+    // Only called for existing orders or after order is placed.
+    if (_activeOrderId == null) return;
+
+    // Demo mode: skip ImagePicker and use a mock transparent PNG.
+    final bytes = Uint8List.fromList(const [
+      137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82, 
+      0, 0, 0, 1, 0, 0, 0, 1, 8, 6, 0, 0, 0, 31, 21, 196, 137, 
+      0, 0, 0, 11, 73, 68, 65, 84, 8, 215, 99, 96, 0, 2, 0, 0, 5, 
+      0, 1, 243, 255, 34, 14, 0, 0, 0, 0, 73, 69, 78, 68, 174, 66, 96, 130
+    ]);
+    final s = context.read<AppLocaleProvider>().strings;
+    final np = context.read<NotificationsProvider>();
 
     setState(() {
       _webImageBytes  = bytes; // Use bytes for preview on both web and mobile
@@ -95,26 +75,28 @@ class _QrPaymentScreenState extends State<QrPaymentScreen> {
     try {
       await SlipUploadService.instance.uploadSlip(
         slipBytes: bytes,
-        orderId:   activeOrderId ?? 'unknown',
+        orderId:   _activeOrderId ?? 'unknown',
         onProgress: (p) {
           if (mounted) setState(() => _uploadProgress = p);
         },
       );
 
       if (!mounted) return;
+      
+      // Update local provider state and trigger notification
+      await context.read<OrdersProvider>().markSlipUploaded(_activeOrderId!, np);
+
       setState(() {
         _uploading = false;
         _uploaded  = true;
       });
 
+      if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            s.isThai
-                ? 'อัปโหลดสลิปสำเร็จ รอ Admin ตรวจสอบ'
-                : 'Slip uploaded — awaiting admin verification.',
-          ),
-          backgroundColor: const Color(0xFF4CAF50),
+          content: Text(s.uploadSuccessAwaitAdmin),
+          backgroundColor: _kPurpleLight,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           margin: const EdgeInsets.all(16),
@@ -122,13 +104,19 @@ class _QrPaymentScreenState extends State<QrPaymentScreen> {
         ),
       );
 
-      // Navigate to the orders screen
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (_) => const OrdersScreen(initialTab: 0)),
-        (route) => route.isFirst,
-      );
+      // Navigate to orders screen so the user can see their order
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (!mounted) return;
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const OrdersScreen(initialTab: 0),
+          ),
+          (route) => route.isFirst,
+        );
+      });
     } catch (e) {
+
       if (!mounted) return;
       setState(() {
         _uploading   = false;
@@ -136,12 +124,8 @@ class _QrPaymentScreenState extends State<QrPaymentScreen> {
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            s.isThai
-                ? 'เกิดข้อผิดพลาด: $_uploadError'
-                : 'Upload failed: $_uploadError',
-          ),
-          backgroundColor: kErrorRedDark,
+          content: Text('${s.uploadFailedPrefix}$_uploadError'),
+          backgroundColor: _kPurple,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           margin: const EdgeInsets.all(16),
@@ -152,7 +136,7 @@ class _QrPaymentScreenState extends State<QrPaymentScreen> {
 
   Future<void> _handleUploadPressed() async {
     final s = context.read<AppLocaleProvider>().strings;
-    await showDialog<void>(
+    final proceed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: Colors.white,
@@ -166,9 +150,7 @@ class _QrPaymentScreenState extends State<QrPaymentScreen> {
               const Icon(Icons.info_outline_rounded, color: _kPurple, size: 52),
               const SizedBox(height: 12),
               Text(
-                s.isThai
-                    ? 'ขออภัยในความไม่สะดวก\nเนื่องจากแอปพลิเคชันเป็นเพียง Version ทดลอง ทั้งตัวสินค้าและคิวอาร์โค้ดธนาคารล้วนเป็นข้อมูลชั่วคราวจำลองเท่านั้น จึงจะยังไม่มีการซื้อขายเกิดขึ้นจริงภายในแอปของเรา'
-                    : 'We apologize for the inconvenience.\nAs this application is a Demo version, the products and bank QR codes are only mockups. No actual transactions or purchases will occur within our application.',
+                s.demoNoticeMsg,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 14,
@@ -202,7 +184,7 @@ class _QrPaymentScreenState extends State<QrPaymentScreen> {
                       ),
                     ),
                     child: Text(
-                      s.isThai ? 'ตกลง' : 'OK',
+                      s.okLabel,
                       style: const TextStyle(
                         color: _kPurple,
                         fontWeight: FontWeight.w800,
@@ -217,6 +199,17 @@ class _QrPaymentScreenState extends State<QrPaymentScreen> {
         ],
       ),
     );
+
+    if (proceed == true) {
+      if (_activeOrderId == null) {
+        // CASE: Initial Checkout -> Demo only as requested
+        // Simply return to page 1 (QR screen) without changes
+        return;
+      } else {
+        // CASE: Paying for existing order -> Real upload
+        _pickSlip();
+      }
+    }
   }
 
   @override
@@ -275,8 +268,9 @@ class _QrPaymentScreenState extends State<QrPaymentScreen> {
                     ),
                   ),
                   Text(
-                    '฿${widget.total.toStringAsFixed(0)}',
+                    PriceFormatter.formatWithCurrency(widget.total),
                     style: const TextStyle(
+
                       color: Colors.white,
                       fontSize: 24,
                       fontWeight: FontWeight.w900,
@@ -297,7 +291,7 @@ class _QrPaymentScreenState extends State<QrPaymentScreen> {
                 border: Border.all(color: _kPurpleBorder, width: 1.5),
                 boxShadow: [
                   BoxShadow(
-                    color: _kPurpleLight.withValues(alpha: 0.10),
+                    color: _kPurpleLight.withOpacity(0.10),
                     blurRadius: 20,
                     offset: const Offset(0, 6),
                   ),
@@ -324,7 +318,7 @@ class _QrPaymentScreenState extends State<QrPaymentScreen> {
                         Container(
                           padding: const EdgeInsets.all(4),
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.15),
+                            color: Colors.white.withOpacity(0.15),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: const Icon(
@@ -491,7 +485,7 @@ class _QrPaymentScreenState extends State<QrPaymentScreen> {
             const SizedBox(height: 24),
 
             // ── Slip Upload / Pay Later ────────────────────────────────
-            if (!_uploaded) ...[
+
               // Upload slip button
               GestureDetector(
                 onTap: _uploading ? null : _handleUploadPressed,
@@ -555,22 +549,42 @@ class _QrPaymentScreenState extends State<QrPaymentScreen> {
               ),
 
               // Show selected slip preview
-              if ((kIsWeb ? _webImageBytes != null : _slipImage != null) && !_uploading)
+              if (_webImageBytes != null && !_uploading)
                 Padding(
                   padding: const EdgeInsets.only(top: 12),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: kIsWeb
-                        ? Image.memory(
-                            _webImageBytes!,
-                            height: 160,
-                            fit: BoxFit.cover,
-                          )
-                        : Image.file(
-                            _slipImage!,
-                            height: 160,
-                            fit: BoxFit.cover,
+                  child: Container(
+                    width: double.infinity,
+                    height: 160,
+                    decoration: BoxDecoration(
+                      color: _kPurpleFaint.withOpacity(0.5),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: _kPurple.withOpacity(0.2)),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.image_search_rounded,
+                          color: _kPurple,
+                          size: 48,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          s.slipUploaded, // Changed from successLabel
+                          style: const TextStyle(
+                            color: _kPurple,
+                            fontWeight: FontWeight.w700,
                           ),
+                        ),
+                        Text(
+                          'marmari_slip_demo.png',
+                          style: TextStyle(
+                            color: _kPurple.withOpacity(0.6),
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
 
@@ -599,49 +613,8 @@ class _QrPaymentScreenState extends State<QrPaymentScreen> {
                   ),
                 ),
               ),
-            ] else ...[
-              // ── Waiting Verification State ───────────────────────────
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEDF7ED),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: const Color(0xFFA5D6A7),
-                    width: 1.5,
-                  ),
-                ),
-                child: Column(
-                  children: [
-                    const Icon(
-                      Icons.check_circle_rounded,
-                      color: Color(0xFF4CAF50),
-                      size: 48,
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      s.waitingVerification,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF2E7D32),
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      s.verifyingPaymentMsg,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.green.shade700,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-              ),
-            ],
+
+
             const SizedBox(height: 30),
           ],
         ),
@@ -671,9 +644,7 @@ class _QrPaymentScreenState extends State<QrPaymentScreen> {
               ),
               const SizedBox(height: 12),
               Text(
-                s.isThai
-                    ? 'คำสั่งซื้อจะถูกบันทึกไว้ คุณสามารถชำระเงินภายหลังได้ในหน้าออเดอร์'
-                    : 'Your order will be saved and you can pay later from the orders page.',
+                s.payLaterNoticeMsg,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 15,
@@ -718,11 +689,12 @@ class _QrPaymentScreenState extends State<QrPaymentScreen> {
                 Container(width: 1, height: 50, color: Colors.grey.shade200),
                 Expanded(
                   child: TextButton(
-                    onPressed: () {
+                    onPressed: () async {
                       Navigator.pop(ctx);
-                      if (widget.orderId == null) {
+                      if (_activeOrderId == null) {
+                        final np = context.read<NotificationsProvider>();
                         // Place order in OrdersProvider (To Pay tab)
-                        context.read<OrdersProvider>().placeOrders(
+                        await context.read<OrdersProvider>().placeOrders(
                           items: widget.selectedItems
                               .map(
                                 (ci) => {
@@ -735,9 +707,20 @@ class _QrPaymentScreenState extends State<QrPaymentScreen> {
                               )
                               .toList(),
                           tab: OrderTab.toPay,
+                          np: np,
+                          customTitleTh: 'จองสินค้าสำเร็จ',
+                          customTitleEn: 'Reservation Successful',
+                          customMsgTh: 'คุณได้ทำการจองสินค้าเรียบร้อยแล้ว รอการชำระเงิน',
+                          customMsgEn: 'Product reserved successfully. Awaiting payment.',
                         );
+                        if (!mounted) return;
+                        final ordersProvider = context.read<OrdersProvider>();
+                        if (ordersProvider.orders.isNotEmpty) {
+                          _activeOrderId = ordersProvider.orders.last.id;
+                        }
                         context.read<CartProvider>().clear();
                       }
+                      if (!mounted) return;
                       Navigator.pushAndRemoveUntil(
                         context,
                         MaterialPageRoute(

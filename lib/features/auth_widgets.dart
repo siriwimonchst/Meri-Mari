@@ -33,7 +33,7 @@ class AuthInputField extends StatelessWidget {
         border: Border.all(color: const Color(0xFFDDD6E8), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFFAB9DC4).withValues(alpha: 0.08),
+            color: const Color(0xFFAB9DC4).withOpacity(0.08),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -88,7 +88,7 @@ class AuthGradientButton extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFFAB9DC4).withValues(alpha: 0.3),
+            color: const Color(0xFFAB9DC4).withOpacity(0.3),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),

@@ -12,6 +12,7 @@ import '../core/app_theme.dart';
 import '../providers/app_locale_provider.dart';
 import '../providers/favorites_provider.dart';
 import '../providers/cart_provider.dart';
+import '../providers/notifications_provider.dart';
 import '../widgets/profile_widgets.dart';
 import 'account_settings_screen.dart';
 import 'notifications_screen.dart';
@@ -25,6 +26,10 @@ import 'address_screen.dart';
 import 'language_screen.dart';
 import 'shop_demo_screen.dart';
 import 'notification_settings_screen.dart';
+import 'help_center_screen.dart';
+import 'policies_screen.dart';
+import 'about_screen.dart';
+import 'usage_rules_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -45,12 +50,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  Future<void> _deleteAccount() async {
+    try {
+      // Delete the Firebase Auth account
+      await FirebaseAuth.instance.currentUser?.delete();
+    } catch (e) {
+      // If delete fails (e.g., requires recent authentication),
+      // fallback to a standard sign-out.
+      await FirebaseAuth.instance.signOut();
+    }
+    
+    if (!mounted) return;
+    // Clear favorites local provider storage.
+    context.read<FavoritesProvider>().clear();
+    
+    // Route back to the unified AuthScreen
+    Navigator.pushAndRemoveUntil(
+      this.context,
+      MaterialPageRoute(builder: (_) => const AuthScreen()),
+      (_) => false,
+    );
+  }
+
 
 
   @override
   Widget build(BuildContext context) {
     final locale = context.watch<AppLocaleProvider>();
     final cartProvider = context.watch<CartProvider>();
+    final notificationsProvider = context.watch<NotificationsProvider>();
     final s = locale.strings;
     final user = FirebaseAuth.instance.currentUser;
 
@@ -101,18 +129,46 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         color: kPurpleFaint,
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: IconButton(
-                        icon: const Icon(
-                          Icons.notifications_none_rounded,
-                          color: kPurple,
-                          size: 20,
-                        ),
-                        onPressed: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const NotificationsScreen(),
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          IconButton(
+                            icon: const Icon(
+                              Icons.notifications_none_rounded,
+                              color: kPurple,
+                              size: 20,
+                            ),
+                            onPressed: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const NotificationsScreen(),
+                              ),
+                            ),
                           ),
-                        ),
+                          if (notificationsProvider.unreadCount > 0)
+                            Positioned(
+                              top: 4,
+                              right: 4,
+                              child: Container(
+                                width: 14,
+                                height: 14,
+                                decoration: const BoxDecoration(
+                                  color: kPurple,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    '${notificationsProvider.unreadCount}',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 8,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                     ),
                   ),
@@ -193,7 +249,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             borderRadius: BorderRadius.circular(24),
                             boxShadow: [
                               BoxShadow(
-                                color: kPurpleLight.withValues(alpha: 0.2),
+                                color: kPurpleLight.withOpacity(0.2),
                                 blurRadius: 15,
                                 offset: const Offset(0, 8),
                               ),
@@ -206,9 +262,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 height: 80,
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
-                                  color: Colors.white.withValues(alpha: 0.2),
+                                  color: Colors.white.withOpacity(0.2),
                                   border: Border.all(
-                                    color: Colors.white.withValues(alpha: 0.4),
+                                    color: Colors.white.withOpacity(0.4),
                                     width: 2,
                                   ),
                                   image: photoUrl != null
@@ -262,9 +318,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         vertical: 4,
                                       ),
                                       decoration: BoxDecoration(
-                                        color: Colors.white.withValues(
-                                          alpha: 0.15,
-                                        ),
+                                        color: Colors.white.withOpacity(0.15),
                                         borderRadius: BorderRadius.circular(50),
                                       ),
                                       child: Row(
@@ -474,31 +528,45 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ProfileMenuItem(
                         icon: Icons.help_outline_rounded,
                         label: s.helpCentre,
-                        onTap: () {},
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const HelpCenterScreen(),
+                          ),
+                        ),
                       ),
                       Divider(height: 1, color: Colors.grey.shade100),
                       ProfileMenuItem(
                         icon: Icons.gavel_rounded,
                         label: s.communityRules,
-                        onTap: () {},
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const UsageRulesScreen(),
+                          ),
+                        ),
                       ),
                       Divider(height: 1, color: Colors.grey.shade100),
                       ProfileMenuItem(
                         icon: Icons.policy_outlined,
                         label: s.policies,
-                        onTap: () {},
-                      ),
-                      Divider(height: 1, color: Colors.grey.shade100),
-                      ProfileMenuItem(
-                        icon: Icons.mail_outline_rounded,
-                        label: s.contactUs,
-                        onTap: () {},
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const PoliciesScreen(),
+                          ),
+                        ),
                       ),
                       Divider(height: 1, color: Colors.grey.shade100),
                       ProfileMenuItem(
                         icon: Icons.info_outline_rounded,
                         label: s.about,
-                        onTap: () {},
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const AboutScreen(),
+                          ),
+                        ),
                       ),
                       Divider(height: 1, color: Colors.grey.shade100),
                       ProfileMenuItem(
@@ -506,8 +574,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         label: s.requestAccountDeletion,
                         onTap: () => _showDeletionDialog(context, s),
                       ),
-
-                      const SizedBox(height: 24),
                       Divider(height: 1, color: Colors.grey.shade100),
                       const SizedBox(height: 24),
 
@@ -521,7 +587,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           style: OutlinedButton.styleFrom(
                             foregroundColor: kErrorRedDark,
                             side: BorderSide(
-                              color: kErrorRedDark.withValues(alpha: 0.4),
+                              color: kErrorRedDark.withOpacity(0.4),
                               width: 1.5,
                             ),
                             shape: RoundedRectangleBorder(
@@ -549,7 +615,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _showDeletionDialog(BuildContext context, dynamic s) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         content: Padding(
@@ -577,7 +643,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                 Expanded(
                   child: TextButton(
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () => Navigator.pop(dialogContext),
                     style: TextButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: const RoundedRectangleBorder(
@@ -600,8 +666,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Expanded(
                   child: TextButton(
                     onPressed: () {
-                      Navigator.pop(context);
-                      // In a real app, you'd trigger actual deletion here
+                      Navigator.pop(dialogContext);
+                      _deleteAccount();
                     },
                     style: TextButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),

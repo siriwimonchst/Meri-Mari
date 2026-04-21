@@ -8,6 +8,8 @@ import '../providers/app_locale_provider.dart';
 import 'checkout_screen.dart'; // Changed from orders.dart
 import '../providers/orders_provider.dart';
 import '../core/app_theme.dart';
+import '../core/utils.dart';
+
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const _kPurple = kPurple;
@@ -72,7 +74,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
             Text(added ? s.addedToCart : s.alreadyInCart),
           ],
         ),
-        backgroundColor: added ? _kPurple : kPurpleLight,
+        backgroundColor: added ? kPurpleLight : _kPurple,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.all(16),
@@ -98,7 +100,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
         leading: Padding(
           padding: const EdgeInsets.all(8),
           child: CircleAvatar(
-            backgroundColor: Colors.white.withValues(alpha: 0.9),
+            backgroundColor: Colors.white.withOpacity(0.9),
             child: IconButton(
               icon: const Icon(
                 Icons.arrow_back_ios_new_rounded,
@@ -113,7 +115,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: CircleAvatar(
-              backgroundColor: Colors.white.withValues(alpha: 0.9),
+              backgroundColor: Colors.white.withOpacity(0.9),
               child: ScaleTransition(
                 scale: _heartScale,
                 child: IconButton(
@@ -191,7 +193,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                             decoration: BoxDecoration(
                               color: isActive
                                   ? Colors.white
-                                  : Colors.white.withValues(alpha: 0.5),
+                                  : Colors.white.withOpacity(0.5),
                               borderRadius: BorderRadius.circular(3),
                             ),
                           );
@@ -210,7 +212,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.45),
+                          color: Colors.black.withOpacity(0.45),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
@@ -227,7 +229,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                   if (isOrdered)
                     Positioned.fill(
                       child: Container(
-                        color: kPurple.withValues(alpha: 0.70),
+                        color: kPurple.withOpacity(0.70),
                         child: Center(
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
@@ -239,7 +241,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                               ),
                               const SizedBox(height: 12),
                               Text(
-                                s.isThai ? 'สินค้าหมด' : 'Out of Stock',
+                                s.outOfStock,
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 26,
@@ -249,9 +251,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                               ),
                               const SizedBox(height: 6),
                               Text(
-                                s.isThai
-                                    ? 'สินค้าชิ้นนี้ถูกจองแล้ว'
-                                    : 'This item is already reserved',
+                                s.reserved,
                                 style: const TextStyle(
                                   color: Colors.white70,
                                   fontSize: 14,
@@ -297,8 +297,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                         ),
                         const SizedBox(width: 12),
                         Text(
-                          '฿${widget.item.price.toStringAsFixed(0)}',
+                          PriceFormatter.formatWithCurrency(widget.item.price),
                           style: const TextStyle(
+
                             fontSize: 22,
                             fontWeight: FontWeight.w900,
                             color: _kPurple,
@@ -370,8 +371,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                           ),
                           _DetailRow(
                             label: s.shipping,
-                            value:
-                                '฿${widget.item.shippingCost.toStringAsFixed(0)}',
+                            value: PriceFormatter.formatWithCurrency(widget.item.shippingCost),
                           ),
                         ],
                       ),
@@ -412,7 +412,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
           color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: _kPurple.withValues(alpha: 0.08),
+              color: _kPurple.withOpacity(0.08),
               blurRadius: 20,
               offset: const Offset(0, -4),
             ),
@@ -427,7 +427,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                   icon: const Icon(Icons.shopping_bag_outlined, size: 18),
                   label: Text(
                     isOrdered
-                        ? (s.isThai ? 'สินค้าหมด' : 'Out of Stock')
+                        ? s.outOfStock
                         : s.addToCart,
                   ),
                   style: OutlinedButton.styleFrom(
@@ -479,7 +479,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                   ),
                   child: Text(
                     isOrdered
-                        ? (s.isThai ? 'ไม่สามารถสั่งซื้อได้' : 'Unavailable')
+                        ? s.unavailable
                         : s.buyNow,
                   ),
                 ),

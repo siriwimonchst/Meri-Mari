@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../providers/app_locale_provider.dart';
 import '../core/app_theme.dart';
 import 'auth_widgets.dart';
@@ -13,6 +14,7 @@ class ForgotPasswordScreen extends StatefulWidget {
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final _emailCtrl = TextEditingController();
+  bool _loading = false;
 
   @override
   void dispose() {
@@ -20,74 +22,68 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     super.dispose();
   }
 
-  void _showDemoDialog() {
-    final s = context.read<AppLocaleProvider>().strings;
-    showDialog(
-      context: context,
-      builder: (ctx) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        backgroundColor: Colors.white,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
-              child: Column(
-                children: [
-                  Text(
-                    s.forgotPasswordTitle,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: kText,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    s.forgotPasswordDemoMsg,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      height: 1.5,
-                      color: kText,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              height: 1,
-              color: Colors.grey.withValues(alpha: 0.15),
-            ),
-            SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                style: TextButton.styleFrom(
-                  foregroundColor: kPurple,
-                  shape: const RoundedRectangleBorder(
-                    borderRadius: BorderRadius.only(
-                      bottomLeft: Radius.circular(16),
-                      bottomRight: Radius.circular(16),
-                    ),
-                  ),
-                ),
-                child: Text(
-                  s.okLabel,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
+  void _showError(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: kPurple,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
       ),
     );
   }
+
+  void _showSuccess(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: kPurpleLight,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+      ),
+    );
+  }
+
+  Future<void> _sendResetEmail() async {
+    final email = _emailCtrl.text.trim();
+    final s = context.read<AppLocaleProvider>().strings;
+
+    if (email.isEmpty) {
+      _showError(s.enterEmailHint);
+      return;
+    }
+
+    setState(() => _loading = true);
+    try {
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+      if (!mounted) return;
+      _showSuccess(s.resetLinkSent);
+      _emailCtrl.clear();
+      // Optionally navigate back after a delay
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) Navigator.pop(context);
+      });
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+      String errorMsg = s.errorSendingEmail;
+      if (e.code == 'user-not-found') {
+        errorMsg = s.emailNotFound;
+      } else if (e.code == 'invalid-email') {
+        errorMsg = s.invalidEmail;
+      } else if (e.code == 'too-many-requests') {
+        errorMsg = s.tooManyAttempts;
+      }
+      _showError(errorMsg);
+    } catch (e) {
+      if (!mounted) return;
+      _showError(s.generalError);
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -173,7 +169,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     // Send Button
                     AuthGradientButton(
                       label: s.sendResetLink,
-                      onPressed: _showDemoDialog,
+                      loading: _loading,
+                      onPressed: _sendResetEmail,
                     ),
                   ],
                 ),

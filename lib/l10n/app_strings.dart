@@ -39,15 +39,35 @@ class AppStrings {
       isThai ? 'เปลี่ยนรหัสผ่านสำเร็จ' : 'Password updated successfully';
   String get wrongCurrentPassword =>
       isThai ? 'รหัสผ่านปัจจุบันไม่ถูกต้อง' : 'Wrong current password';
+  String get registrationSuccess => isThai
+      ? 'สมัครสมาชิกสำเร็จ! กรุณาเข้าสู่ระบบ'
+      : 'Registration successful! Please login.';
   String get save => isThai ? 'บันทึก' : 'Save';
+
   String get forgotPasswordTitle => isThai ? 'ลืมรหัสผ่าน' : 'Forgot Password';
   String get forgotPasswordDemoMsg => isThai
-      ? 'เนื่องจากแอปพลิเคชันเวอร์ชันนี้เป็นเวอร์ชันทดลองใช้งาน (Demo) ฟีเจอร์นี้กำลังอยู่ระหว่างการพัฒนา ขออภัยในความไม่สะดวกครับ'
+      ? 'เนื่องจากแอปพลิเคชันเวอร์ชันนี้เป็นเวอร์ชันทดลองใช้งาน (Demo) ฟีเจอร์นี้กำลังอยู่ระหว่างการพัฒนา ขออภัยในความไม่สะดวก'
       : 'As this is a Demo version, the password recovery feature is currently under development. We apologize for any inconvenience.';
   String get enterEmailHint => isThai
       ? 'กรุณากรอกอีเมลที่ลงทะเบียนไว้'
       : 'Please enter your registered email';
   String get sendResetLink => isThai ? 'ส่งลิงก์กู้คืน' : 'Send Reset Link';
+  String get resetLinkSent => isThai
+      ? 'ส่งลิงก์กู้คืนรหัสผ่านไปยังอีเมลของคุณเรียบร้อยแล้ว'
+      : 'Password reset link sent to your email.';
+  String get emailNotFound =>
+      isThai ? 'ไม่พบอีเมลนี้ในระบบ' : 'Email not found.';
+  String get invalidEmail =>
+      isThai ? 'รูปแบบอีเมลไม่ถูกต้อง' : 'Invalid email format.';
+  String get loginSuccess => isThai ? 'เข้าสู่ระบบสำเร็จ' : 'Login successful';
+  String get welcomeBack => isThai ? 'ยินดีต้อนรับกลับ!' : 'Welcome Back!';
+  String get authReadyToShop => isThai
+      ? 'พร้อมค้นหาสินค้าที่คุณชอบแล้วหรือยัง?\nการช้อปปิ้งของคุณเริ่มต้นที่นี่'
+      : 'Ready to find your favorite items?\nYour shopping journey starts here.';
+  String get enterEmail => isThai ? 'กรอกอีเมล' : 'Enter email';
+  String get rememberMe => isThai ? 'จดจำฉัน' : 'Remember me';
+  String get wrongPassword => isThai ? 'รหัสผ่านไม่ถูกต้อง' : 'Wrong password';
+
 
   // ── Home ──────────────────────────────────────────────────────────────────
   String get searchHint => isThai ? 'ค้นหาสินค้า...' : 'Search products...';
@@ -179,9 +199,13 @@ class AppStrings {
   String get subtotal => isThai ? 'ราคารวม' : 'Subtotal';
   String get shippingCost => isThai ? 'ค่าขนส่ง' : 'Shipping';
   String get totalPayment => isThai ? 'ยอดชำระ' : 'Total';
+  String get totalLabel => isThai ? 'รวมการสั่งซื้อ' : 'Total';
+
 
   // ── Checkout ──────────────────────────────────────────────────────────────
   String get checkoutTitle => isThai ? 'ชำระเงิน' : 'Checkout';
+  String get checkoutSubtotal => isThai ? 'ยอดรวมสินค้า' : 'Subtotal';
+
   String get deliveryAddress => isThai ? 'ที่อยู่จัดส่ง' : 'Delivery address';
   String get noAddressSelected =>
       isThai ? 'ยังไม่ได้เลือกที่อยู่' : 'No address selected';
@@ -196,10 +220,10 @@ class AppStrings {
       : 'Your order has been saved';
   String get backToHome => isThai ? 'กลับหน้าหลัก' : 'Back to Home';
   String get uploadSlip =>
-      isThai ? 'อัพโหลดสลิปการโอน' : 'Upload transfer slip';
-  String get slipUploaded => isThai ? 'อัพโหลดสลิปสำเร็จ!' : 'Slip uploaded!';
+      isThai ? 'อัปโหลดสลิปการโอน' : 'Upload transfer slip';
+  String get slipUploaded => isThai ? 'อัปโหลดสลิปสำเร็จ!' : 'Slip uploaded!';
   String get verifyingSlip =>
-      isThai ? 'รอตรวจสอบสลิปชำระเงิน' : 'Verifying payment slip...';
+      isThai ? 'รอตรวจสอบสลิปการชำระเงิน' : 'Verifying payment slip...';
 
   // ── QR Payment ────────────────────────────────────────────────────────────
   String get scanQrToPay => isThai ? 'สแกน QR เพื่อชำระเงิน' : 'Scan QR to pay';
@@ -234,9 +258,9 @@ class AppStrings {
   String get orderItems => isThai ? 'รายการสินค้า' : 'Items';
   String get orderTotal => isThai ? 'ยอดรวม' : 'Total';
   String get uploadPaymentSlip =>
-      isThai ? 'อัพโหลดหลักฐานการโอน' : 'Upload payment slip';
+      isThai ? 'อัปโหลดหลักฐานการโอน' : 'Upload payment slip';
   String get slipUploadedSuccess =>
-      isThai ? 'อัพโหลดสลิปสำเร็จ!' : 'Slip uploaded!';
+      isThai ? 'อัปโหลดสลิปสำเร็จ!' : 'Slip uploaded!';
   String get orderDate => isThai ? 'วันที่สั่ง' : 'Order Date';
   String get tabAll => isThai ? 'ทั้งหมด' : 'All';
   String get tabToPay => isThai ? 'ที่ต้องชำระ' : 'To Pay';
@@ -278,6 +302,14 @@ class AppStrings {
   String get saveChanges => isThai ? 'บันทึกการเปลี่ยนแปลง' : 'Save changes';
   String get editProfile => isThai ? 'แก้ไขโปรไฟล์' : 'Edit Profile';
   String get changesSaved => isThai ? 'บันทึกแล้ว!' : 'Saved!';
+
+  // Photo Permission Photo
+  String get photoPermissionTitle => isThai ? 'ต้องการเข้าถึงรูปภาพ' : 'Photo Access Required';
+  String get photoPermissionMsg => isThai
+      ? 'Meri-Mari ต้องการเข้าถึงรูปภาพของคุณเพื่อใช้อัปโหลดเป็นรูปโปรไฟล์'
+      : 'Meri-Mari needs access to your photos to upload as a profile picture.';
+  String get allowLabel => isThai ? 'อนุญาต' : 'Allow';
+  String get laterLabel => isThai ? 'ไว้ทีหลัง' : 'Not Now';
 
   // ── Notifications ─────────────────────────────────────────────────────────
   String get notificationsTitle => isThai ? 'การแจ้งเตือน' : 'Notifications';
@@ -350,7 +382,7 @@ class AppStrings {
   String get myInfo => isThai ? 'ข้อมูลของฉัน' : 'My Info';
   String get support => isThai ? 'ศูนย์ความช่วยเหลือ' : 'Support';
   String get helpCentre => isThai ? 'ศูนย์ช่วยเหลือ' : 'Help Centre';
-  String get communityRules => isThai ? 'กฎของชุมชน' : 'Community Rules';
+  String get communityRules => isThai ? 'กฎระเบียบในการใช้' : 'Usage Rules';
   String get policies => isThai ? 'นโยบายของ Meri-Mari' : 'Meri-Mari Policies';
   String get contactUs => isThai ? 'ติดต่อเรา' : 'Contact Us';
   String get about => isThai ? 'เกี่ยวกับเรา' : 'About';
@@ -382,6 +414,101 @@ class AppStrings {
   String get openShop => isThai ? 'เปิดร้านค้า' : 'Open Shop';
   String get myShop => isThai ? 'ร้านค้าของฉัน' : 'My Shop';
   String get shopDemoMsg => isThai
-      ? 'เนื่องจากแอปพลิเคชันนี้ยังเป็นเวอร์ชันทดลองใช้งาน (Demo)\nฟังก์ชันร้านค้าจึงกำลังอยู่ระหว่างการพัฒนา\nขออภัยในความไม่สะดวกเป็นอย่างยิ่งค่ะ'
-      : 'As this application is currently a Demo version,\nthe shop feature is under development.\nWe apologize for any inconvenience caused.';
+      ? 'ฟีเจอร์ "ร้านค้าของฉัน" กำลังอยู่ระหว่างการพัฒนา\nขออภัยในความไม่สะดวก'
+      : 'The "My Shop" feature is currently under development.\nWe apologize for any inconvenience.';
+
+  String get helpCenterMsg => isThai
+      ? 'ขณะนี้ระบบศูนย์ช่วยเหลือยังอยู่ในขั้นตอนการพัฒนา\nขออภัยในความไม่สะดวก'
+      : 'The Help Center system is currently under development.\nWe apologize for any inconvenience.';
+
+  String get contactSellerMsg => isThai
+      ? 'เนื่องจากแอปนี้เป็นเพียงเวอร์ชัน Demo สินค้านี้จึงเป็นสินค้าตัวอย่างเท่านั้น\nขออภัยในความไม่สะดวก'
+      : 'Since this app is only a Demo version, this product is for demonstration purposes only.\nWe apologize for any inconvenience.';
+
+  // ── Policies ─────────────────────────────────────────────────────────────
+  String get policiesPageTitle => isThai ? '[นโยบาย] นโยบายของ Meri-Mari' : '[Policies] Meri-Mari Policies';
+  String get policiesPageSubtitle => isThai
+      ? 'คุณสามารถศึกษาข้อมูลเพิ่มเติมเกี่ยวกับนโยบายต่างๆ ของ Meri-Mari ตามหัวข้อด้านล่างดังนี้'
+      : 'You can learn more about various policies of Meri-Mari by the topics below.';
+  String get policiesSectionTitle => isThai ? 'นโยบายของ Meri-Mari' : 'Meri-Mari Policies';
+  
+  String get clearCache => isThai ? 'เคลียร์ Cache' : 'Clear Cache';
+  String get aboutTitle => isThai ? 'เกี่ยวกับ' : 'About';
+  
+  List<String> get usageRulesItems => isThai ? [
+    'การเคารพสิทธิและความเป็นส่วนตัวของผู้อื่นในชุมชน Meri-Mari',
+    'ห้ามลงขายสินค้าที่ผิดกฎหมาย หรือสินค้าต้องห้ามตามนโยบายของแอป',
+    'การชำระเงินต้องทำผ่านช่องทาง PromptPay ที่กำหนดเท่านั้น เพื่อความปลอดภัย',
+    'ห้ามใช้ถ้อยคำที่ไม่สุภาพ คุกคาม หรือเสียดสีผู้อื่นในระบบแชทติดต่อผู้ขาย',
+    'ข้อมูลส่วนตัวและที่อยู่จัดส่งต้องเป็นความจริง และได้รับการอัปเดตเสมอ',
+  ] : [
+    'Respect the rights and privacy of others in the Meri-Mari community.',
+    'Prohibit the sale of illegal items or items restricted by app policy.',
+    'Payments must be made only through the specified PromptPay channels for security.',
+    'Do not use impolite, threatening, or sarcastic language in the chat system.',
+    'Personal information and shipping addresses must be true and kept updated.',
+  ];
+  
+  List<String> get policyItems => isThai ? [
+    'เงื่อนไขการให้บริการของ Meri-Mari',
+    'นโยบายความเป็นส่วนตัวของ Meri-Mari',
+    'นโยบายการคุ้มครองผู้ซื้อ (Buyer Protection System)',
+    'ระบบการยืนยันสินค้าและการเคลม (Product Claims Policy)',
+    'นโยบายการคืนเงินและคืนสินค้า',
+    'แนวทางการแพ็คและจัดส่งสินค้าสะสม (Shipping Guidelines)',
+    'นโยบายสิ่งของต้องห้ามและสิ่งของที่ถูกจำกัด',
+    'แนวทางปฏิบัติการใช้งานชุมชน (Community Guidelines)',
+  ] : [
+    'Meri-Mari Terms of Service',
+    'Meri-Mari Privacy Policy',
+    'Buyer Protection System Policy',
+    'Product Verification & Claims Policy',
+    'Refund and Return Policy',
+    'Collectible Packing & Shipping Guidelines',
+    'Prohibited and Restricted Items Policy',
+    'Meri-Mari Community Guidelines',
+  ];
+
+  // ── Feedback & Errors ───────────────────────────────────────────────────
+  String get fillAllFields => isThai ? 'กรุณากรอกข้อมูลให้ครบถ้วน' : 'Please fill in all fields';
+  String get passTooShort => isThai ? 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร' : 'Password must be at least 6 characters';
+  String get emailAlreadyInUse => isThai ? 'อีเมลนี้ถูกใช้งานแล้ว' : 'This email is already in use';
+  String get weakPassword => isThai ? 'รหัสผ่านง่ายเกินไป' : 'Password is too weak';
+  String get invalidEmailOrPass => isThai ? 'Email หรือ Password ไม่ถูกต้อง' : 'Invalid email or password';
+  String get tooManyAttempts => isThai ? 'ลองเข้าสู่ระบบบ่อยเกินไป' : 'Too many attempts. Try again later.';
+  String get generalError => isThai ? 'เกิดข้อผิดพลาด' : 'An error occurred';
+  String get uploadSuccessAwaitAdmin => isThai ? 'อัปโหลดสลิปสำเร็จ รอ Admin ตรวจสอบ' : 'Slip uploaded — awaiting admin verification.';
+  String get uploadFailedPrefix => isThai ? 'เกิดข้อผิดพลาด: ' : 'Upload failed: ';
+  String get demoNoticeTitle => isThai ? 'ประกาศ' : 'Notice';
+  String get demoNoticeMsg => isThai
+      ? 'เนื่องจากแอปพลิเคชันเป็นเพียง Version ทดลอง ทั้งตัวสินค้าและคิวอาร์โค้ดธนาคารล้วนเป็นข้อมูลชั่วคราวจำลองเท่านั้น จึงจะยังไม่มีการซื้อขายเกิดขึ้นจริงภายในแอปของเรา'
+      : 'As this application is a Demo version, the products and bank QR codes are only mockups. No actual transactions or purchases will occur within our application.';
+  String get payLaterNoticeMsg => isThai
+      ? 'คำสั่งซื้อจะถูกบันทึกไว้ คุณสามารถชำระเงินภายหลังได้ในหน้าออเดอร์'
+      : 'Your order will be saved and you can pay later from the orders page.';
+  String get outOfStock => isThai ? 'สินค้าหมด' : 'Out of Stock';
+  String get reserved => isThai ? 'สินค้าชิ้นนี้ถูกจองแล้ว' : 'This item is already reserved';
+  String get unavailable => isThai ? 'ไม่สามารถสั่งซื้อได้' : 'Unavailable';
+  String get addressRemoved => isThai ? 'ลบที่อยู่สำเร็จ' : 'Address removed';
+  String get errorSendingEmail => isThai ? 'เกิดข้อผิดพลาดในการส่งอีเมล' : 'Error sending email';
+  String get cancelOrderConfirmPrompt => isThai ? 'ยกเลิกออเดอร์?' : 'Cancel Order?';
+  String get cancelOrderMsg => isThai ? 'หากยกเลิก สินค้าจะกลับมาให้ผู้อื่นสามารถสั่งซื้อได้อีกครั้ง' : 'The item will be available for others to purchase again.';
+  String itemsCount(int n) => isThai ? 'สินค้ารวม $n รายการ: ' : '$n item(s): ';
+  String get paymentExpired => isThai ? 'หมดเวลาชำระเงิน — ออเดอร์ถูกยกเลิก' : 'Payment expired — order cancelled';
+  String get viaPromptPay => isThai ? ' ผ่าน QR พร้อมเพย์' : ' via QR PromptPay';
+  String orderIdLabel(String id) => isThai ? 'รหัส: $id' : 'ID: $id';
+  String get pendingPayment => isThai ? 'รอผู้ซื้อชำระเงิน' : 'Pending Payment';
+  String get shippingStatus => isThai ? 'ผู้ขายกำลังจัดส่ง' : 'Shipping';
+  String get toReceiveStatus => isThai ? 'รอรับสินค้า' : 'To Receive';
+  String get successStatus => isThai ? 'สำเร็จ' : 'Success';
+  String get noDeliveryAddressTitle => isThai ? 'ไม่มีที่อยู่จัดส่ง' : 'No Delivery Address';
+  String get noDeliveryAddressMsg => isThai
+      ? 'กรุณาเพิ่มที่อยู่จัดส่งในหน้าโปรไฟล์ หรือกดเลือกที่อยู่ก่อนทำการสั่งซื้อ'
+      : 'Please add a delivery address or select one before placing your order.';
+  String get totalPaymentLabel => isThai ? 'ยอดชำระเงินทั้งหมด' : 'Total Payment';
+  String get reservationNotificationTitle => isThai ? 'จองสินค้าสำเร็จ' : 'Reservation Successful';
+  String get reservationNotificationMsg => isThai 
+      ? 'คุณได้ทำการจองสินค้าเรียบร้อยแล้ว รอการชำระเงิน' 
+      : 'You have reserved the product successfully. Waiting for payment.';
 }
+

@@ -2,9 +2,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_locale_provider.dart';
+import '../core/app_theme.dart';
+
 import 'home.dart';
 import 'favorite_screen.dart';
 import 'profile_screen.dart';
+import 'search_screen.dart';
+
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -16,20 +20,28 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
 
-  final List<Widget> _screens = const [
-    HomeScreen(),
-    FavoriteScreen(),
-    ProfileScreen(),
+  late final List<Widget> _screens = [
+    const HomeScreen(),
+    SearchScreen(
+      hideBackButton: true,
+      onBack: () => setState(() => _currentIndex = 0),
+    ),
+    const FavoriteScreen(),
+    const ProfileScreen(),
   ];
+
+
 
   @override
   Widget build(BuildContext context) {
     final s = context.watch<AppLocaleProvider>().strings;
     final navItems = [
       _NavData(icon: Icons.home_rounded, label: s.home),
+      _NavData(icon: Icons.search_rounded, label: s.explore),
       _NavData(icon: Icons.favorite_rounded, label: s.favorites),
       _NavData(icon: Icons.person_rounded, label: s.navProfile),
     ];
+
 
     return Scaffold(
       body: IndexedStack(index: _currentIndex, children: _screens),
@@ -59,7 +71,8 @@ class _BottomNav extends StatelessWidget {
     required this.onTap,
   });
 
-  static const _purple = Color(0xFFAB9DC4);
+  static const _purple = kPurple;
+
 
   @override
   Widget build(BuildContext context) {
@@ -74,7 +87,7 @@ class _BottomNav extends StatelessWidget {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFFAB9DC4).withValues(alpha: 0.12),
+            color: const Color(0xFFAB9DC4).withOpacity(0.12),
             blurRadius: 24,
             offset: const Offset(0, -6),
           ),
@@ -95,7 +108,7 @@ class _BottomNav extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
                 decoration: BoxDecoration(
                   color: selected
-                      ? const Color(0xFFAB9DC4).withValues(alpha: 0.12)
+                      ? const Color(0xFFAB9DC4).withOpacity(0.12)
                       : Colors.transparent,
                   borderRadius: BorderRadius.circular(24),
                 ),

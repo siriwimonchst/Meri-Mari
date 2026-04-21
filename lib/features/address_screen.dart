@@ -35,10 +35,14 @@ class _AddressScreenState extends State<AddressScreen> {
       }
     } catch (e) {
       if (mounted) {
+        final strings = context.read<AppLocaleProvider>().strings;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(e.toString().replaceFirst('Exception: ', '')),
-            backgroundColor: kErrorRed,
+            content: Text('${strings.generalError}: ${e.toString().replaceFirst('Exception: ', '')}'),
+            backgroundColor: kPurple,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            margin: const EdgeInsets.all(16),
           ),
         );
       }
@@ -127,6 +131,18 @@ class _AddressScreenState extends State<AddressScreen> {
 
     if (ok == true) {
       await _addressService.deleteAddress(address.id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(s.addressRemoved),
+            backgroundColor: kPurpleLight,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            margin: const EdgeInsets.all(16),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
     }
   }
 
@@ -212,6 +228,18 @@ class _AddressScreenState extends State<AddressScreen> {
 
     if (ok == true) {
       await _addressService.setDefault(addressId);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(s.changesSaved),
+            backgroundColor: kPurpleLight,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            margin: const EdgeInsets.all(16),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
     }
   }
 
@@ -313,7 +341,7 @@ class _AddressScreenState extends State<AddressScreen> {
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.03),
+                            color: Colors.black.withOpacity(0.03),
                             blurRadius: 10,
                             offset: const Offset(0, 4),
                           ),

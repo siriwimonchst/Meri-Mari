@@ -225,15 +225,15 @@ class HomeBannerCarousel extends StatelessWidget {
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
-                        banner.accentColor.withValues(alpha: 0.15),
-                        banner.accentColor.withValues(alpha: 0.05),
+                        banner.accentColor.withOpacity(0.15),
+                        banner.accentColor.withOpacity(0.05),
                       ],
                       begin: Alignment.centerLeft,
                       end: Alignment.centerRight,
                     ),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: banner.accentColor.withValues(alpha: 0.25),
+                      color: banner.accentColor.withOpacity(0.25),
                       width: 1,
                     ),
                   ),
@@ -274,7 +274,7 @@ class HomeBannerCarousel extends StatelessWidget {
                                     Text(
                                       banner.subtitle,
                                       style: TextStyle(
-                                        color: kText.withValues(alpha: 0.65),
+                                        color: kText.withOpacity(0.65),
                                         fontSize: 12,
                                         height: 1.5,
                                       ),
@@ -308,7 +308,7 @@ class HomeBannerCarousel extends StatelessWidget {
                               Icon(
                                 Icons.local_offer_rounded,
                                 size: 80,
-                                color: banner.accentColor.withValues(alpha: 0.15),
+                                color: banner.accentColor.withOpacity(0.15),
                               ),
                           ],
                         ),
@@ -747,7 +747,7 @@ class _HomeAddressSheetState extends State<HomeAddressSheet> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
-                disabledBackgroundColor: kPurpleBorder.withValues(alpha: 0.5),
+                disabledBackgroundColor: kPurpleBorder.withOpacity(0.5),
               ),
               child: Text(
                 s.okLabel,

@@ -45,6 +45,8 @@ dependencies:
   firebase_storage: ^13.2.0
   flutter_secure_storage: ^10.0.0
   flutter_slidable: ^4.0.3
+  intl: ^0.19.0
+
 
 dev_dependencies:
   flutter_test:
@@ -76,6 +78,11 @@ flutter:
     - assets/banner_02.jpg
     - assets/sp_screen.jpg
     - assets/splash_01.jpg
+    - assets/last3.png
+    - assets/last4.png
+    - assets/last5.png
+    - assets/final_logo.png
+    - assets/last_logo.png
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see

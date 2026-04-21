@@ -53,25 +53,40 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(s.passwordChangedSuccess),
-            backgroundColor: Colors.green,
+            backgroundColor: kPurpleLight,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            margin: const EdgeInsets.all(16),
           ),
         );
         Navigator.pop(context);
       }
     } on FirebaseAuthException catch (e) {
-      String msg = e.message ?? 'An error occurred';
+      String msg = e.message ?? s.generalError;
       if (e.code == 'wrong-password' || e.code == 'invalid-credential') {
         msg = s.wrongCurrentPassword;
       }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(msg), backgroundColor: kErrorRed),
+          SnackBar(
+            content: Text(msg),
+            backgroundColor: kPurple,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            margin: const EdgeInsets.all(16),
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: kErrorRed),
+          SnackBar(
+            content: Text('${s.generalError}: $e'),
+            backgroundColor: kPurple,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            margin: const EdgeInsets.all(16),
+          ),
         );
       }
     } finally {
