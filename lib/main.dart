@@ -13,9 +13,17 @@ import 'providers/notifications_provider.dart';
 
 import 'firebase_options.dart';
 import 'splash_screen.dart';
+import 'features/landing_page.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter_web_plugins/url_strategy.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  if (kIsWeb) {
+    usePathUrlStrategy();
+  }
+
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   runApp(
@@ -34,8 +42,16 @@ void main() async {
   );
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  // ตัวแปรเช็คว่าเป็นการโหลดครั้งแรกจากเบราว์เซอร์หรือไม่
+  bool _isFirstLoad = true;
 
   @override
   Widget build(BuildContext context) {
@@ -51,7 +67,31 @@ class MyApp extends StatelessWidget {
         fontFamily: 'sans-serif',
         scaffoldBackgroundColor: Colors.white,
       ),
-      home: const SplashScreen(),
+      onGenerateRoute: (settings) {
+        String? routeName = settings.name;
+
+        // เช็ค URL จริงจาก Browser เฉพาะครั้งแรกที่แอปเริ่มทำงานบน Web
+        if (kIsWeb && _isFirstLoad) {
+          _isFirstLoad = false;
+          final currentPath = Uri.base.path;
+          if (currentPath == '/landing-page') {
+            routeName = '/landing-page';
+          }
+        }
+
+        if (routeName == '/landing-page') {
+          return MaterialPageRoute(
+            settings: const RouteSettings(name: '/landing-page'),
+            builder: (_) => const LandingPage(),
+          );
+        }
+        
+        // สำหรับหน้าอื่นๆ หรือเมื่อกดจากปุ่มใน Landing Page
+        return MaterialPageRoute(
+          settings: const RouteSettings(name: '/'),
+          builder: (_) => const SplashScreen(),
+        );
+      },
     );
   }
 }
