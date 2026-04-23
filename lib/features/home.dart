@@ -292,11 +292,11 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         if (notificationsProvider.unreadCount > 0)
                           Positioned(
-                            top: 4,
-                            right: 4,
+                            top: -4,
+                            right: -4,
                             child: Container(
-                              width: 14,
-                              height: 14,
+                              width: 18,
+                              height: 18,
                               decoration: const BoxDecoration(
                                 color: kPurple,
                                 shape: BoxShape.circle,
@@ -306,8 +306,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                   '${notificationsProvider.unreadCount}',
                                   style: const TextStyle(
                                     color: Colors.white,
-                                    fontSize: 8,
-                                    fontWeight: FontWeight.w900,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w800,
                                   ),
                                 ),
                               ),

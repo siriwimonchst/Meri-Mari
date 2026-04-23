@@ -30,7 +30,7 @@ class LandingNavbar extends StatelessWidget {
                 child: Image.asset('assets/last_logo.png', width: 38, height: 38, fit: BoxFit.cover),
               ),
               const SizedBox(width: 12),
-              Text('Meri-Mari', style: poppins(fontSize: 24, fontWeight: FontWeight.w900)),
+              Text('Meri Mari', style: poppins(fontSize: 24, fontWeight: FontWeight.w900)),
             ],
           ),
           if (isDesktop)
