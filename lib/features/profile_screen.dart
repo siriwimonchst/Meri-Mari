@@ -122,17 +122,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 actions: [
                   Padding(
                     padding: const EdgeInsets.only(right: 8),
-                    child: Container(
-                      width: 42,
-                      height: 42,
-                      decoration: BoxDecoration(
-                        color: kPurpleFaint,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          IconButton(
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Container(
+                          width: 42,
+                          height: 42,
+                          decoration: BoxDecoration(
+                            color: kPurpleFaint,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: IconButton(
                             icon: const Icon(
                               Icons.notifications_none_rounded,
                               color: kPurple,
@@ -145,31 +145,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ),
                             ),
                           ),
-                          if (notificationsProvider.unreadCount > 0)
-                            Positioned(
-                              top: 4,
-                              right: 4,
-                              child: Container(
-                                width: 14,
-                                height: 14,
-                                decoration: const BoxDecoration(
-                                  color: kPurple,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    '${notificationsProvider.unreadCount}',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 8,
-                                      fontWeight: FontWeight.w900,
-                                    ),
+                        ),
+                        if (notificationsProvider.unreadCount > 0)
+                          Positioned(
+                            top: -4,
+                            right: -4,
+                            child: Container(
+                              width: 18,
+                              height: 18,
+                              decoration: const BoxDecoration(
+                                color: kPurple,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Center(
+                                child: Text(
+                                  '${notificationsProvider.unreadCount}',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w800,
                                   ),
                                 ),
                               ),
                             ),
-                        ],
-                      ),
+                          ),
+                      ],
                     ),
                   ),
                   Padding(

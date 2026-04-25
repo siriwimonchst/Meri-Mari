@@ -14,6 +14,8 @@ import 'providers/notifications_provider.dart';
 import 'firebase_options.dart';
 import 'splash_screen.dart';
 import 'features/landing_page.dart';
+import 'features/privacy_policy_page.dart';
+import 'features/delete_account_page.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_web_plugins/url_strategy.dart';
 
@@ -76,6 +78,10 @@ class _MyAppState extends State<MyApp> {
           final currentPath = Uri.base.path;
           if (currentPath == '/landing-page') {
             routeName = '/landing-page';
+          } else if (currentPath == '/privacy-policy') {
+            routeName = '/privacy-policy';
+          } else if (currentPath == '/delete-account') {
+            routeName = '/delete-account';
           }
         }
 
@@ -83,6 +89,20 @@ class _MyAppState extends State<MyApp> {
           return MaterialPageRoute(
             settings: const RouteSettings(name: '/landing-page'),
             builder: (_) => const LandingPage(),
+          );
+        }
+
+        if (routeName == '/privacy-policy') {
+          return MaterialPageRoute(
+            settings: const RouteSettings(name: '/privacy-policy'),
+            builder: (_) => const PrivacyPolicyPage(),
+          );
+        }
+
+        if (routeName == '/delete-account') {
+          return MaterialPageRoute(
+            settings: const RouteSettings(name: '/delete-account'),
+            builder: (_) => const DeleteAccountPage(),
           );
         }
         
