@@ -1,4 +1,4 @@
-package com.example.meri_mari
+package com.merimari.app
 
 import io.flutter.embedding.android.FlutterActivity
 
